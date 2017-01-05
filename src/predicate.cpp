@@ -5,4 +5,3 @@
  *      Author: Ruan Pingcheng
  */
 
-#include "predicate.h"
