@@ -10,7 +10,7 @@ OBJ_TEST_DIR = $(OBJ_DIR)/test
 SRC_DIR = src
 TEST_SRC_DIR = test
 
-CFLAGS = -Wall -std=c++11 -Iinclude
+CFLAGS = -Wall -std=c++11 -Iinclude -MMD
 LDFLAGS = 
 TEST_LDFLAGS = $(LDFLAGS) -l gtest -pthread
 
@@ -18,6 +18,7 @@ SRCS=$(wildcard $(SRC_DIR)/*.cpp)
 OBJS=$(addprefix $(OBJ_SRC_DIR)/, $(notdir $(SRCS:%.cpp=%.o)))
 EXEC=$(BUILD_DIR)/main
 EXEC_SRC=main.cpp
+-include $(OBJS:%.o=%.d)
 
 TEST_SRCS=$(wildcard $(TEST_SRC_DIR)/*.cpp)
 TEST_OBJS=$(addprefix $(OBJ_TEST_DIR)/, $(notdir $(TEST_SRCS:%.cpp=%.o)))
