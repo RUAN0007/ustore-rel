@@ -7,32 +7,85 @@
 
 #include "type.h"
 
+#include "field.h"
+#include "debug.h"
 using namespace std;
 
 namespace ustore{
 namespace relation{
 
 
-// bool Type::IsIntType(const Type* type){
-// 	return IntType::GetInstance() == type;
-// }
+bool Type::IsIntType(const Type* type){
+	return IntType::GetInstance() == type;
+}
 
-// bool Type::IsStrType(const Type* type){
-// 	return StrType::GetInstance() == type;
-// }
-// // Field* IntType::Parse(char bytes[]) const{
-// 	//Assume Little Endian Encoding
-// 	//LSD is at starting index of the byte array
-// 	int value = (bytes[3] << 24) | (bytes[2] << 16) | (bytes[1] << 8) | (bytes[0]);
+bool Type::IsStrType(const Type* type){
+	return StrType::GetInstance() == type;
+}
 
-// 	return new IntField(value);
-// }
+Field* IntType::Parse(const unsigned char bytes[]) const{
 
-// Field* StrType::Parse(char bytes[]) const{
-// 	string value(bytes,StrType::kSTR_LEN);
+	int value = (bytes[3] << 24) | (bytes[2] << 16) | (bytes[1] << 8) | (bytes[0]);
+	return new IntField(value);
 
-// 	return new StrField(value);
-// }
+}
+
+const unsigned char* IntType::Serialize(const Field* f) const {
+
+	const IntField* int_field = dynamic_cast<const IntField*>(f);
+
+	if(int_field == 0) {
+		LOG(LOG_FATAL, "IntType can not serialize a non IntField");
+	}
+
+	int value = int_field->value();
+	size_t len = GetLen();
+	unsigned char* bytes = new unsigned char[len];
+
+	for (size_t i = 0;i < len;i++) {
+		bytes[i] = (value >> (8 * i)) & 0xFF;
+	}
+
+	return bytes;
+}
+
+Field* StrType::Parse(const unsigned char bytes[]) const{
+	string value( reinterpret_cast<const char*>(bytes));
+	return new StrField(value);
+}
+
+const unsigned char* StrType::Serialize(const Field* f) const {
+
+	const StrField* str_field = dynamic_cast<const StrField*>(f);
+	if(str_field == 0) {
+		LOG(LOG_FATAL, "StrType can not serialize a non StrField");
+	}
+	size_t len = GetLen();
+	
+	const char* char_ptr = str_field->value().c_str();
+	unsigned char* bytes = new unsigned char[len];
+	unsigned char* byte_ptr = bytes;
+
+	//Copy c_str of StrField ValUE to bytes.
+	//Zero padding bytes to the end
+	size_t count = 0;
+	while(*char_ptr != 0) {
+		*byte_ptr = *char_ptr;
+
+		char_ptr++;
+		byte_ptr++;
+		count ++;
+	}
+
+	while(count < len) {
+		*byte_ptr = 0;
+		byte_ptr++;	
+		count++;
+	}
+
+	return bytes;
+}
+
 
 }//namespace relation
 }//namespace ustore

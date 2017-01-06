@@ -8,34 +8,18 @@
 #include "field.h"
 
 #include "debug.h"
+#include "type.h"
 
 using namespace std;
 namespace ustore{
 namespace relation{
 
-size_t GetTypeSize(Type t) {
-	if(t == INT_TYPE) {
-		return 4;
-	}else if(t == STR_TYPE){
-		return 256;
-	}
-	return 0;
-}
 
-string GetTypeName(Type t) {
-	if(t == INT_TYPE) {
-		return "INT";
-	}else if(t == STR_TYPE){
-		return "STR";
-	}
-	return 0;
-}
+bool IntField::IsSatisified(ComparisonOp op, const Field* field) const{
+	if (!Type::IsIntType(field->GetType())) return false;
 
-bool IntField::IsSatisified(ComparisonOp op, const Field& field) const{
-	if (field.GetType() != INT_TYPE) return false;
-
-	const IntField& int_field = dynamic_cast<const IntField&>(field);
-	int cmp_value = int_field.value();
+	const IntField* int_field = dynamic_cast<const IntField*>(field);
+	int cmp_value = int_field->value();
 
 	if(op == kEQ) {
 		return value() == cmp_value;
@@ -55,11 +39,11 @@ bool IntField::IsSatisified(ComparisonOp op, const Field& field) const{
 	return false;
 }
 
-bool StrField::IsSatisified(ComparisonOp op, const Field& field) const{
-	if (field.GetType() != STR_TYPE) return false;
+bool StrField::IsSatisified(ComparisonOp op, const Field* field) const{
+	if (!Type::IsStrType(field->GetType())) return false;
 
-	const StrField& str_field = dynamic_cast<const StrField&>(field);
-	string cmp_value = str_field.value();
+	const StrField* str_field = dynamic_cast<const StrField*>(field);
+	string cmp_value = str_field->value();
 
 	if(op == kEQ) {
 		return value() == cmp_value;
@@ -80,70 +64,51 @@ bool StrField::IsSatisified(ComparisonOp op, const Field& field) const{
 }
 
 std::istream& operator>>(std::istream &in, StrField& str_field){
-	size_t len = GetTypeSize(str_field.GetType());
+	size_t len = StrType::GetInstance()->GetLen();
 	char* bytes = new char[len];
 	in.read(bytes,len);
 
-	str_field.value_ = std::string(bytes);
+	Field* parsed_field = StrType::GetInstance()->Parse(reinterpret_cast<unsigned char*>(bytes));
+	StrField* parsed_str_field = dynamic_cast<StrField*>(parsed_field);
+	str_field.value_ = parsed_str_field->value();
+
+	delete parsed_str_field;
 	delete[] bytes;
 	return in;
 };
 
-std::ostream& operator<<(std::ostream &out, StrField& str_field){
-	size_t len = GetTypeSize(str_field.GetType());
-	char* bytes = new char[len];
-	
-	const char* char_ptr = str_field.value().c_str();
+std::ostream& operator<<(std::ostream &out, StrField str_field){
+	size_t len = StrType::GetInstance()->GetLen();
 
-	char* byte_ptr = bytes;
+	const unsigned char* bytes = StrType::GetInstance()->Serialize(&str_field);
 
-	size_t count = 0;
-	while(*char_ptr != 0) {
-		*byte_ptr = *char_ptr;
-
-		char_ptr++;
-		byte_ptr++;
-		count ++;
-	}
-
-	while(count < len) {
-		*byte_ptr = 0;
-		byte_ptr++;	
-		count++;
-	}
-
-	out.write(bytes, len);
+	out.write(reinterpret_cast<const char*>(bytes), len);
 
 	delete[] bytes;
 	return out;
 };
 
 std::istream& operator>>(std::istream &in, IntField& int_field){
-	size_t len =  GetTypeSize(int_field.GetType());
-	unsigned char* bytes = new unsigned char[len];
-	// LOG(LOG_DEBUG, "Before Read: %s", bytes);
-	in.read(reinterpret_cast<char*>(bytes),len);
-	// LOG(LOG_DEBUG, "After Read: %s", bytes);
+	size_t len = IntType::GetInstance()->GetLen();
+	char* bytes = new char[len];
+	in.read(bytes,len);
 
-	int_field.value_ = (bytes[3] << 24) | (bytes[2] << 16) | (bytes[1] << 8) | (bytes[0]);
-	// LOG(LOG_DEBUG, "field value: %d", int_field.value_);
+	Field* parsed_field = IntType::GetInstance()->Parse(reinterpret_cast<unsigned char*>(bytes));
+	IntField* parsed_int_field = dynamic_cast<IntField*>(parsed_field);
+	int_field.value_ = parsed_int_field->value();
+
+	delete parsed_int_field;
 	delete[] bytes;
 	return in;
 };
 
 std::ostream& operator<<(std::ostream &out, IntField int_field){
-	size_t len =  GetTypeSize(int_field.GetType());
-	unsigned char bytes[len];
+	size_t len = IntType::GetInstance()->GetLen();
+	const unsigned char* bytes = IntType::GetInstance()->Serialize(&int_field);
 
-	int value = int_field.value_;
+	out.write(reinterpret_cast<const char*>(bytes), len);
 
-	for (size_t i = 0;i < len;i++) {
-		bytes[i] = (value >> (8 * i)) & 0xFF;
-	}
-
-	out.write(reinterpret_cast<char*>(bytes), len);
-	// delete[] bytes;
-	out << int_field.value();
+	delete[] bytes;
 	return out;
 };
 

@@ -11,6 +11,8 @@
 #include "operator.h"
 
 #include "debug.h"
+#include "type.h"
+
 #include <iostream>
 #include <fstream> 
 #include <sstream>  
@@ -18,27 +20,27 @@
 namespace ustore{
 namespace relation{
 
-enum Type{
-	INT_TYPE,
-	STR_TYPE
-};
+// enum Type{
+// 	INT_TYPE,
+// 	STR_TYPE
+// };
 
-size_t GetTypeSize(Type t);
+// size_t GetTypeSize(Type t);
 
-std::string GetTypeName(Type t);
+// std::string GetTypeName(Type t);
 
 class Field{
 public:
-virtual const Type GetType() const = 0;
+virtual const Type* GetType() const = 0;
 
-virtual bool IsSatisified(ComparisonOp op, const Field& field) const = 0;
+virtual bool IsSatisified(ComparisonOp op, const Field* field) const = 0;
 
 virtual std::string to_str() const = 0;
 virtual Field* clone() const = 0;
 inline virtual ~Field(){};
 }; //class Field
 
-class IntField:Field{
+class IntField:public Field{
 
 public:
 IntField(){};
@@ -47,7 +49,7 @@ explicit IntField(int value):value_(value){};
 
 inline int value() const{ return value_;};
 
-virtual bool IsSatisified(ComparisonOp op, const Field& field) const override;
+virtual bool IsSatisified(ComparisonOp op, const Field* field) const override;
 
 inline Field* clone() const override{
 	return new IntField(*this);
@@ -55,14 +57,14 @@ inline Field* clone() const override{
 
 inline std::string to_str() const override{
 	std::ostringstream ss;
-	ss << GetTypeName(this->GetType());
+	ss << GetType()->to_str();
 	ss << ":";
 	ss << value_ << " ";
 	return ss.str();
 }
 
-inline virtual const Type GetType() const override{
-	return INT_TYPE;
+inline virtual const Type* GetType() const override{
+	return IntType::GetInstance();
 }
 
 friend std::istream& operator>>(std::istream &in, IntField& int_field);
@@ -74,13 +76,13 @@ int value_;
 
 }; //class IntField
 
-class StrField:Field{
+class StrField:public Field{
 public:
 StrField(){};
 ~StrField(){};
 //Max char number 255
 explicit StrField(std::string value){
-	size_t max_len = GetTypeSize(STR_TYPE) - 1;
+	size_t max_len = StrType::GetInstance()->GetLen() - 1;
 	if (value.size() > max_len){
 		value_ = value.substr(max_len);
 	}else{
@@ -92,26 +94,26 @@ inline std::string value() const {return value_;}
 
 inline std::string to_str() const override{
 	std::ostringstream ss;
-	ss << GetTypeName(this->GetType());
+	ss << GetType()->GetLen();
 	ss << ":";
 	ss << value_ << " ";
 	return ss.str();
 }
 
-bool IsSatisified(ComparisonOp op, const Field& field) const override;
+bool IsSatisified(ComparisonOp op, const Field* field) const override;
 
 inline Field* clone() const override{
 	return new StrField(*this);
 }
 
 
-inline virtual const Type GetType() const override{
-	return STR_TYPE;
+inline virtual const Type* GetType() const override{
+	return StrType::GetInstance();
 }
 
 friend std::istream& operator>>(std::istream &in, StrField& str_field);
 
-friend std::ostream& operator<<(std::ostream &out, StrField& str_field);
+friend std::ostream& operator<<(std::ostream &out, StrField str_field);
 private:
 std::string value_;
 };//end of StrField
