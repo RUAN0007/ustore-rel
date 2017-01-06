@@ -107,14 +107,14 @@ TEST(STREAM, Normal_Str_Field){
 
 
 string GetStrByLen(size_t len) {
-	string s;
+	stringstream s;
 	for (size_t i = 0;i < len;i++) {
-		s += 'a';
+		s << "a";
 	}
-	return s;
+	return s.str();;
 }
 
-TEST(STREAM, Overflow_Str_Field){
+TEST(STREAM, Nearflow_Str_Field){
 	string value = GetStrByLen(256);
 	StrField origin_field(value);
 
@@ -127,5 +127,21 @@ TEST(STREAM, Overflow_Str_Field){
 	StrField new_field("NOT EMPTY");
 	ss >> new_field;
 
-	EXPECT_EQ(new_field.value(), value.substr(255));	
+	EXPECT_EQ(new_field.value(), value.substr(0,256));	
+}
+
+TEST(STREAM, overflow_Str_Field){
+	string value = GetStrByLen(257);
+	StrField origin_field(value);
+
+	stringstream ss;
+
+	// cout << "Before: " << ss.str() << endl;
+	ss << origin_field;
+	// cout << "After: " << ss.str() << endl;
+	ss.flush();
+	StrField new_field("NOT EMPTY");
+	ss >> new_field;
+
+	EXPECT_EQ(new_field.value(), value.substr(0,256));	
 }
