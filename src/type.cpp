@@ -50,7 +50,24 @@ const unsigned char* IntType::Serialize(const Field* f) const {
 }
 
 Field* StrType::Parse(const unsigned char bytes[]) const{
-	string value( reinterpret_cast<const char*>(bytes));
+	size_t max_len = StrType::GetInstance()->GetLen();
+
+	unsigned effective_size = 0;
+
+	//Find the position of first NULL character
+	//This should be the number of characters in the string
+
+	const unsigned char* byte_ptr = bytes;
+	while(*byte_ptr != 0 && effective_size < max_len) {
+		++ effective_size;
+		++ byte_ptr;
+	}
+
+
+	string value( reinterpret_cast<const char*>(bytes),effective_size);
+
+	cout << "value: " << endl;
+	// string value( reinterpret_cast<const char*>(bytes));
 	return new StrField(value);
 }
 
