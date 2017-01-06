@@ -51,6 +51,10 @@ inline int value() const{ return value_;};
 
 virtual bool IsSatisified(ComparisonOp op, const Field* field) const override;
 
+inline const unsigned char* Serialize() {
+	return this->GetType()->Serialize(this);
+}
+
 inline Field* clone() const override{
 	return new IntField(*this);
 }
@@ -82,9 +86,9 @@ StrField(){};
 ~StrField(){};
 //Max char number 255
 explicit StrField(std::string value){
-	size_t max_len = StrType::GetInstance()->GetLen() - 1;
+	size_t max_len = StrType::GetInstance()->GetLen();
 	if (value.size() > max_len){
-		value_ = value.substr(max_len);
+		value_ = value.substr(0,max_len);
 	}else{
 		value_ = value;
 	}
