@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 19:45:52
-   @Last_Modified_At:   2017-01-07 14:41:35
+   @Last_Modified_At:   2017-01-07 17:07:40
    @Last_Modified_By:   RUAN0007
 
 */
@@ -16,6 +16,7 @@
 
 #include "debug.h"
 #include <vector>
+#include <cstring>
 
 using namespace std;
 
@@ -105,6 +106,60 @@ TEST(TupleDscp, AbnormalMetaData) {
 	delete schema;
 }
 
+TEST(Tuple, EQUAL) {
+
+	const TupleDscp* schema = GetStandardSchema();
+
+	unsigned char* b1 = new unsigned char[1000]{0};
+	unsigned char* b2 = new unsigned char[1000]{0};
+	Tuple t1(b1,10,  schema);
+	Tuple t2(b2,15,  schema);
+
+	ASSERT_EQ(memcmp(b1,b2,1000),0); 
+
+	string msg;
+
+	Field *int1 = new IntField(999);
+	Field *str2 = new StrField("Str2");	
+	Field *str3 = new StrField("Str3");	
+	Field *int4 = new IntField(-99);
+	
+	t1.SetFieldByName("1Int", int1, msg);
+	t1.SetFieldByName("2Str", str2, msg);
+	t1.SetFieldByIndex(2, str3, msg);
+	t1.SetFieldByName("4Int", int4, msg);
+
+
+	t2.SetFieldByName("1Int", int1, msg);
+	t2.SetFieldByName("2Str", str2, msg);
+	t2.SetFieldByIndex(2, str3, msg);
+	t2.SetFieldByName("4Int", int4, msg);
+
+	ASSERT_NE(memcmp(b1,b2,1000),0); 
+	ASSERT_EQ(t1,t2);
+
+	unsigned char* b3 = new unsigned char[1000]{0};
+	Tuple t3(b3,20,  schema);
+
+	Field *int5 = new IntField(-9);
+	t3.SetFieldByName("1Int", int1, msg);
+	t3.SetFieldByName("2Str", str2, msg);
+	t3.SetFieldByIndex(2, str3, msg);
+	t3.SetFieldByName("4Int", int5, msg);
+
+	EXPECT_NE(t1,t3);
+
+	delete int1; 
+	delete str2;
+	delete str3;
+	delete int4; 
+
+	delete schema;
+	delete[] b1;
+	delete[] b2;
+	delete[] b3;
+
+}
 
 TEST(Tuple, Predicate) {
 
@@ -154,6 +209,7 @@ TEST(Tuple, Predicate) {
 	delete[] bytes;
 
 }
+
 TEST(Tuple, Field) {
 	unsigned char* bytes = new unsigned char[1000];
 	const TupleDscp* schema = GetStandardSchema();
