@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-07 14:37:13
+   @Last_Modified_At:   2017-01-07 17:06:56
    @Last_Modified_By:   RUAN0007
 
 */
@@ -14,6 +14,7 @@
 
 #include <vector>
 #include <string> 
+#include <cstring> 
 
 #include "predicate.h"
 namespace ustore{
@@ -103,9 +104,9 @@ public:
 
 	inline const TupleDscp* GetSchema() const{return schema_;}
 
-	inline const unsigned char* GetRawBytes(size_t& tuple_size) {
+	inline const unsigned char* GetRawBytes(size_t& tuple_size) const {
 		tuple_size = this->schema_->GetTupleSize();
-		return back_store_ + tuple_size;
+		return back_store_ + start_position_;
 	}
 
 	inline bool IsSatisfy(const Predicate& predicate) const{
@@ -121,7 +122,20 @@ public:
 		return isTrue;
 	}
 	
+	inline friend bool operator== (const Tuple &lhs, const Tuple &rhs){
 
+		bool IsSameSchema = (*lhs.schema_ == *rhs.schema_);
+
+		if (!IsSameSchema) return false;
+		size_t tuple_size = lhs.GetSchema()->GetTupleSize();
+		//compare the contents of char array
+		return memcmp(lhs.GetRawBytes(tuple_size), rhs.GetRawBytes(tuple_size), tuple_size) == 0;
+
+	}
+
+    inline friend bool operator!= (const Tuple &lhs, const Tuple &rhs){
+    	return !(lhs == rhs);
+    }
 private:
 	unsigned char* back_store_;
 	unsigned start_position_;

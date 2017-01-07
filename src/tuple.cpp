@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 13:12:52
-   @Last_Modified_At:   2017-01-07 14:11:22
+   @Last_Modified_At:   2017-01-07 17:05:25
    @Last_Modified_By:   RUAN0007
 
 */
@@ -156,7 +156,8 @@ Field* Tuple::GetFieldByIndex(unsigned index) const{
 
 	const Type* field_type = this->schema_->GetFieldType(index);
 
-	return field_type->Parse(this->back_store_ + field_position);
+	unsigned offset = start_position_ + field_position;
+	return field_type->Parse(this->back_store_ + offset);
 }
 
 Field* Tuple::GetFieldByName(string field_name) const {
@@ -167,13 +168,13 @@ Field* Tuple::GetFieldByName(string field_name) const {
 	return this->GetFieldByIndex(field_index);
 }
 
-bool Tuple::SetFieldByIndex(unsigned index, Field *new_field, string* msg){
+bool Tuple::SetFieldByIndex(unsigned index, Field *new_field, string& msg){
 
 	const Type* original_field_type = this->schema_->GetFieldType(index);
 	const Type* new_field_type = new_field->GetType();
 
 	if(original_field_type != new_field_type) {
-		if(msg != 0) *msg = "Incompatible Field Type";
+		msg = "Incompatible Field Type";
 		return false;
 	}
 
@@ -185,20 +186,22 @@ bool Tuple::SetFieldByIndex(unsigned index, Field *new_field, string* msg){
 
 	unsigned field_position = this->schema_->GetFieldOffset(index);
 
-	memcpy(back_store_ + field_position, new_field_data, len);
+	unsigned offset = start_position_ + field_position;
+	memcpy(back_store_ + offset, new_field_data, len);
 	return true;
 
 }
 
-bool Tuple::SetFieldByName(string field_name, Field* new_field, std::string* msg){
+bool Tuple::SetFieldByName(string field_name, Field* new_field, std::string& msg){
 	int field_position = this->schema_->FieldNameToIndex(field_name);
 
 	if(field_position == -1) {
-		if (msg != 0) *msg = "Can not field for name " + field_name;
+		msg = "Can not field for name " + field_name;
 		return false;
 	}
 
 	return SetFieldByIndex(field_position, new_field, msg);
 }
+
 }//namespace ustore
 }//namepace relation
