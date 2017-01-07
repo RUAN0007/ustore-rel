@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 19:45:52
-   @Last_Modified_At:   2017-01-07 14:13:19
+   @Last_Modified_At:   2017-01-07 14:41:35
    @Last_Modified_By:   RUAN0007
 
 */
@@ -12,6 +12,7 @@
 
 #include "tuple.h"
 #include "field.h"
+#include "operator.h"
 
 #include "debug.h"
 #include <vector>
@@ -34,6 +35,41 @@ const TupleDscp* GetStandardSchema() {
 	names.push_back("4Int");
 
 	return new TupleDscp("Test_Schema", types, names);
+}
+
+const TupleDscp* GetStandardSchema1() {
+	vector<const Type*> types;
+	types.push_back(IntType::GetInstance());
+	types.push_back(IntType::GetInstance());
+	types.push_back(StrType::GetInstance());
+	types.push_back(IntType::GetInstance());
+
+	vector<string> names;
+	names.push_back("1Int");
+	names.push_back("2Str");
+	names.push_back("3Str");
+	names.push_back("4Int");
+
+	return new TupleDscp("Test_Schema", types, names);
+}
+
+TEST(TupleDscp,EQUAL) { 
+	const TupleDscp* s1 = GetStandardSchema();
+	const TupleDscp* s2 = GetStandardSchema();
+
+	EXPECT_TRUE(*s1 == *s2); 
+	delete s1;
+	delete s2;	
+}
+
+TEST(TupleDscp,NotEQUAL) { 
+	const TupleDscp* s1 = GetStandardSchema();
+	const TupleDscp* s2 = GetStandardSchema1();
+
+	EXPECT_TRUE(*s1 != *s2);
+
+	delete s1;
+	delete s2;	
 }
 
 TEST(TupleDscp, NormalMetaData) { 
@@ -69,27 +105,77 @@ TEST(TupleDscp, AbnormalMetaData) {
 	delete schema;
 }
 
+
+TEST(Tuple, Predicate) {
+
+
+	unsigned char* bytes = new unsigned char[1000];
+	const TupleDscp* schema = GetStandardSchema();
+
+	Tuple t(bytes,10,  schema);
+
+	string msg;
+
+	Field *int1 = new IntField(999);
+	t.SetFieldByName("1Int", int1, msg);
+
+	Field *str2 = new StrField("Str2");	
+	t.SetFieldByName("2Str", str2, msg);
+
+	Field *str3 = new StrField("Str3");	
+	t.SetFieldByIndex(2, str3, msg);
+
+	Field *int4 = new IntField(-99);
+	t.SetFieldByName("4Int", int4, msg);
+
+	Predicate p1("1Int",  kLESS, IntField(1000));	
+	EXPECT_TRUE(t.IsSatisfy(p1));
+
+
+	Predicate p2("4Int",  kGREATER,  IntField(0));	
+	EXPECT_FALSE(t.IsSatisfy(p2));
+
+	Predicate p3("2Str",  kEQ,  StrField("Str2"));	
+	EXPECT_TRUE(t.IsSatisfy(p3));
+
+	Predicate p4("3Str",  kEQ,  StrField("Str22"));	
+	EXPECT_FALSE(t.IsSatisfy(p4));
+
+	Predicate p5("5Str",  kEQ,  StrField("Str22"));	
+	EXPECT_FALSE(t.IsSatisfy(p5));
+
+
+	delete int1; 
+	delete str2;
+	delete str3;
+	delete int4; 
+
+	delete schema;
+	delete[] bytes;
+
+}
 TEST(Tuple, Field) {
 	unsigned char* bytes = new unsigned char[1000];
 	const TupleDscp* schema = GetStandardSchema();
 
 	Tuple t(bytes,10,  schema);
 
+	string msg;
 
 	Field *int1 = new IntField(999);
-	ASSERT_TRUE(t.SetFieldByName("1Int", int1, 0));
+	ASSERT_TRUE(t.SetFieldByName("1Int", int1, msg));
 
 	Field *str2 = new StrField("Str2");	
-	ASSERT_TRUE(t.SetFieldByName("2Str", str2, 0));
+	ASSERT_TRUE(t.SetFieldByName("2Str", str2, msg));
 
 	Field *str3 = new StrField("Str3");	
-	ASSERT_TRUE(t.SetFieldByIndex(2, str3, 0));
+	ASSERT_TRUE(t.SetFieldByIndex(2, str3, msg));
 
 	Field *int4 = new IntField(-99);
-	ASSERT_TRUE(t.SetFieldByName("4Int", int4, 0));
+	ASSERT_TRUE(t.SetFieldByName("4Int", int4, msg));
 
 	//Set a non-exist field
-	ASSERT_FALSE(t.SetFieldByName("10Int", int4, 0));
+	ASSERT_FALSE(t.SetFieldByName("10Int", int4, msg));
 
 	IntField* pk_field = dynamic_cast<IntField*>(t.GetPK());
 	EXPECT_EQ(pk_field->value(),999);
@@ -106,7 +192,7 @@ TEST(Tuple, Field) {
 
 //Reset the field value
 	Field *str4 = new StrField("Str4");	
-	ASSERT_TRUE(t.SetFieldByIndex(1, str4, 0));
+	ASSERT_TRUE(t.SetFieldByIndex(1, str4, msg));
 
 	StrField* str_field3 = dynamic_cast<StrField*>(t.GetFieldByIndex(1));
 

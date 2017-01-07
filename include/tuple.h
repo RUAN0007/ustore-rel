@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-07 14:12:41
+   @Last_Modified_At:   2017-01-07 14:37:13
    @Last_Modified_By:   RUAN0007
 
 */
@@ -10,11 +10,12 @@
 #ifndef INCLUDE_TUPLE_H
 #define INCLUDE_TUPLE_H
 
+#include "type.h"
+
 #include <vector>
 #include <string> 
 
-#include "type.h"
-
+#include "predicate.h"
 namespace ustore{
 
 namespace relation{
@@ -94,11 +95,11 @@ public:
 
 	//Set A tuple's field by a new field by name
 	// msg will contain the message of this operation, e.g, failure reason or succeeded.
-	bool SetFieldByName(std::string field_name, Field* new_field, std::string* msg);
+	bool SetFieldByName(std::string field_name, Field* new_field, std::string& msg);
 
 	//Set A tuple's field by a new field by index
 	// msg will contain the message of this operation, e.g, failure reason or succeeded.
-	bool SetFieldByIndex(unsigned index, Field* new_field, std::string* msg);
+	bool SetFieldByIndex(unsigned index, Field* new_field, std::string& msg);
 
 	inline const TupleDscp* GetSchema() const{return schema_;}
 
@@ -107,6 +108,18 @@ public:
 		return back_store_ + tuple_size;
 	}
 
+	inline bool IsSatisfy(const Predicate& predicate) const{
+		std::string field_name = predicate.GetFieldName();
+
+		Field* field = GetFieldByName(field_name);
+
+		if (field == 0) return false;
+
+		bool isTrue = field->IsSatisified(predicate.GetOp(), predicate.GetField());
+		delete field;
+
+		return isTrue;
+	}
 	
 
 private:
