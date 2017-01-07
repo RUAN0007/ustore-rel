@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 13:12:52
-   @Last_Modified_At:   2017-01-06 20:20:29
+   @Last_Modified_At:   2017-01-07 14:11:22
    @Last_Modified_By:   RUAN0007
 
 */
@@ -58,14 +58,16 @@ int TupleDscp::FieldNameToIndex(string field_name) const {
 }
 
 
-TupleDscp::TupleDscp(vector<const Type*> types, vector<string> field_names):
-			TupleDscp::TupleDscp(0, types, field_names) {
+TupleDscp::TupleDscp(std::string schema_name, vector<const Type*> types, vector<string> field_names):
+			TupleDscp::TupleDscp(schema_name, 0, types, field_names) {
 
 }
 
 
-TupleDscp::TupleDscp(unsigned pk_index, vector<const Type*> types, vector<string> field_names)
-		:pk_index_(pk_index){
+TupleDscp::TupleDscp(std::string schema_name, unsigned pk_index, vector<const Type*> types, vector<string> field_names):
+		schema_name_(schema_name),
+		pk_index_(pk_index)
+		{
 
 	auto type_it = types.begin();
 	auto name_it = field_names.begin();
@@ -97,6 +99,41 @@ void TupleDscp::SetUpMetaData() {
 	this->tuple_size_ = total_size;
 }
 
+bool operator== (const TupleDscp &lhs, const TupleDscp &rhs){
+	bool isSameName =  lhs.schema_name_ == rhs.schema_name_;	
+
+	if(!isSameName) return false;
+
+	bool IsSameLen = lhs.GetFieldNumber() == rhs.GetFieldNumber();
+
+	if(!IsSameLen) return false;
+
+	bool isSameStructure = true;
+
+	auto lhs_field_item_it = lhs.inner_schema_.begin();
+	auto rhs_field_item_it = rhs.inner_schema_.begin();
+
+	while(lhs_field_item_it != lhs.inner_schema_.end() || rhs_field_item_it != rhs.inner_schema_.end()) {
+
+		
+		if(lhs_field_item_it->first != rhs_field_item_it->first ){
+			isSameStructure = false;
+			break;
+		}	
+
+		if(lhs_field_item_it->second != rhs_field_item_it->second ){
+			isSameStructure = false;
+			break;
+		}	
+		++lhs_field_item_it;
+		++rhs_field_item_it;
+	}
+
+	return isSameStructure;
+}
+bool operator!= (const TupleDscp &lhs, const TupleDscp &rhs){
+	return !operator==(lhs, rhs);
+}
 
 Tuple::Tuple(unsigned char* back_store, unsigned start_position, const TupleDscp* schema):
 		back_store_(back_store),

@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 19:45:52
-   @Last_Modified_At:   2017-01-06 20:52:10
+   @Last_Modified_At:   2017-01-07 14:13:19
    @Last_Modified_By:   RUAN0007
 
 */
@@ -33,7 +33,7 @@ const TupleDscp* GetStandardSchema() {
 	names.push_back("3Str");
 	names.push_back("4Int");
 
-	return new TupleDscp(types, names);
+	return new TupleDscp("Test_Schema", types, names);
 }
 
 TEST(TupleDscp, NormalMetaData) { 
@@ -109,6 +109,7 @@ TEST(Tuple, Field) {
 	ASSERT_TRUE(t.SetFieldByIndex(1, str4, 0));
 
 	StrField* str_field3 = dynamic_cast<StrField*>(t.GetFieldByIndex(1));
+
 	EXPECT_STREQ(str_field3->value().c_str(),"Str4");
 
 	delete pk_field;

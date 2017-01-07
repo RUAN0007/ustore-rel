@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-06 20:53:33
+   @Last_Modified_At:   2017-01-07 14:12:41
    @Last_Modified_By:   RUAN0007
 
 */
@@ -26,6 +26,7 @@ public:
 	TupleDscp();
 	~TupleDscp();
 
+	inline std::string GetSchemaName() const {return this->schema_name_;}
 	//return "" if index > field_count
 	std::string GetFieldName(unsigned index) const;
 
@@ -47,9 +48,13 @@ public:
 
 	inline size_t GetTupleSize() const{ return tuple_size_;}
 
-	TupleDscp(std::vector<const Type*> types, std::vector<std::string> field_names);
+	TupleDscp(std::string schema_name, std::vector<const Type*> types, std::vector<std::string> field_names);
 
-	TupleDscp(unsigned pk_index, std::vector<const Type*> types, std::vector<std::string>  field_names);
+	TupleDscp(std::string schema_name, unsigned pk_index, std::vector<const Type*> types, std::vector<std::string>  field_names);
+
+	friend bool operator== (const TupleDscp &lhs, const TupleDscp &rhs);
+    friend bool operator!= (const TupleDscp &lhs, const TupleDscp &rhs);
+
 
 private:
 	// compute tuple_size_, field_offset once inner_schema_ is set up. 
@@ -62,6 +67,7 @@ private:
 
 	size_t field_count_;
 
+	std::string schema_name_;
 	//A vector of starting byte position for each field
 	std::vector<unsigned int> field_offset_;
 
@@ -94,7 +100,14 @@ public:
 	// msg will contain the message of this operation, e.g, failure reason or succeeded.
 	bool SetFieldByIndex(unsigned index, Field* new_field, std::string* msg);
 
-	const inline TupleDscp* GetSchema() const{return schema_;}
+	inline const TupleDscp* GetSchema() const{return schema_;}
+
+	inline const unsigned char* GetRawBytes(size_t& tuple_size) {
+		tuple_size = this->schema_->GetTupleSize();
+		return back_store_ + tuple_size;
+	}
+
+	
 
 private:
 	unsigned char* back_store_;
