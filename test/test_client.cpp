@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-09 10:53:35
-   @Last_Modified_At:   2017-01-09 11:27:14
+   @Last_Modified_At:   2017-01-09 18:44:41
    @Last_Modified_By:   RUAN0007
 
 */
@@ -56,13 +56,13 @@ TEST_F(ClientTest, SyncGetBothPreVersion) {
 	EXPECT_EQ(pre_versions.second, v3);
 }
 
-TEST_f(ClientTest, SyncGetNonePreVersion) {
+// TEST_f(ClientTest, SyncGetNonePreVersion) {
 
-	pair<version_t,version_t> pre_versions = client.SyncGetPreviousVersion("key", v4);
+// 	pair<version_t,version_t> pre_versions = client.SyncGetPreviousVersion("key", v4);
 
-	EXPECT_EQ(pre_versions.first, v2);
-	EXPECT_EQ(pre_versions.second, v3);
-}
+// 	EXPECT_EQ(pre_versions.first, v2);
+// 	EXPECT_EQ(pre_versions.second, v3);
+// }
 
 TEST_F(ClientTest, SyncGetSinglePreValue) {
 
