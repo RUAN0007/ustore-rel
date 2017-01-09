@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 13:21:13
-   @Last_Modified_At:   2017-01-07 16:52:57
+   @Last_Modified_At:   2017-01-07 17:30:06
    @Last_Modified_By:   RUAN0007
 
 */
@@ -27,7 +27,7 @@ Page::Page(string table_name, const TupleDscp* tuple_schema, size_t page_size):
 		tuple_num_(0),
 		empty_slot_offset_(sizeof(int)){
 
-	this->buffer_ = new unsigned char[page_size];
+	this->buffer_ = new unsigned char[page_size]{0};
 }
 
 Page::~Page() { delete[] this->buffer_;}
@@ -35,7 +35,7 @@ Page::~Page() { delete[] this->buffer_;}
 void Page::Reset() {
 	
 	delete[] this->buffer_;
-	this->buffer_ = new unsigned char[page_size_];
+	this->buffer_ = new unsigned char[page_size_]{0};
 
 	empty_slot_offset_ = sizeof(int);	
 }
@@ -45,7 +45,7 @@ Tuple* Page::GetTuple(unsigned index) const {
 
 	size_t tuple_size = this->tuple_schema_->GetTupleSize();
 
-	unsigned start_pos = this->empty_slot_offset_ + index * tuple_size;
+	unsigned start_pos = sizeof(int) + index * tuple_size;
 
 	return new Tuple(this->buffer_, start_pos, this->tuple_schema_);
 }
