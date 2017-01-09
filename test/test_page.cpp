@@ -2,7 +2,7 @@
 
 //    @Author: RUAN0007
 //    @Date:   2017-01-07 15:00:36
-//    @Last_Modified_At:   2017-01-07 17:15:32
+//    @Last_Modified_At:   2017-01-07 17:26:38
 //    @Last_Modified_By:   RUAN0007
 
 // */
@@ -37,7 +37,7 @@ const TupleDscp* GetSchema() {
 	return new TupleDscp("Test_Schema", types, names);
 }
 
-Tuple GetTuple(unsigned char* bytes, unsigned position, TupleDscp* schema) {
+Tuple GetTuple(unsigned char* bytes, unsigned position, const TupleDscp* schema) {
 
 	Tuple t(bytes,position, schema);
 
@@ -79,10 +79,10 @@ TEST(Page, AccessTuple) {
 	const TupleDscp* schema = GetSchema();
 
 	unsigned char* tuple_buffer1 = new unsigned char[1024]{0};
-	Tuple t1(tuple_buffer1,10,schema);
+	Tuple t1 = GetTuple(tuple_buffer1,10,schema);
 
 	unsigned char* tuple_buffer2 = new unsigned char[1024]{0};
-	Tuple t2(tuple_buffer2,15,schema);
+	Tuple t2 = GetTuple(tuple_buffer2,15,schema);
 
 	Page p("table1", schema, 4096);
 
@@ -93,6 +93,8 @@ TEST(Page, AccessTuple) {
 	EXPECT_EQ(p.GetTupleNumber(), 2);
 
 	Tuple* t3 = p.GetTuple(0);
+
+	EXPECT_EQ(reinterpret_cast<IntField*>(t3->GetFieldByName("1Int"))->value(),reinterpret_cast<IntField*>(t1.GetFieldByName("1Int"))->value());
 	EXPECT_EQ(t1,*t3);
 
 	Tuple* t4 = p.GetTuple(2);
