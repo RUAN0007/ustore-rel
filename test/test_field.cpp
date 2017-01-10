@@ -145,3 +145,22 @@ TEST(STREAM, overflow_Str_Field){
 
 	EXPECT_EQ(new_field.value(), value.substr(0,256));	
 }
+
+TEST(FIELD, EQUAL) {
+	Field *f1 = new IntField(1);
+	Field *f2 = new IntField(1);
+	EXPECT_TRUE(f1->equal(f2));
+
+	Field *f3 = new StrField("s");
+	Field *f4 = new StrField("r");
+	Field *f5 = new StrField("r");
+	EXPECT_FALSE(f1->equal(f3));
+	EXPECT_FALSE(f3->equal(f4));
+	EXPECT_TRUE(f4->equal(f5));
+
+	delete f1;
+	delete f2;
+	delete f3;
+	delete f4;
+	delete f5;
+}
