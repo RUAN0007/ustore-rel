@@ -37,6 +37,7 @@ virtual bool IsSatisified(ComparisonOp op, const Field* field) const = 0;
 
 virtual std::string to_str() const = 0;
 virtual Field* clone() const = 0;
+virtual bool equal(const Field* f) const = 0;
 inline virtual ~Field(){};
 }; //class Field
 
@@ -57,6 +58,13 @@ inline const unsigned char* Serialize() {
 
 inline Field* clone() const override{
 	return new IntField(*this);
+}
+
+inline bool equal(const Field* f) const override {
+	const IntField *int_f = dynamic_cast<const IntField*>(f);
+	if(int_f == 0) return false;
+
+	return this->value() == int_f->value();
 }
 
 inline std::string to_str() const override{
@@ -95,6 +103,15 @@ explicit StrField(std::string value){
 };
 
 inline std::string value() const {return value_;}
+
+inline bool equal(const Field* f) const override {
+	const StrField *str_f = dynamic_cast<const StrField*>(f);
+	if(str_f == 0)  {
+		// std::cout << "I am here" << std::endl;
+		return false;
+	}
+	return this->value() == str_f->value();
+}
 
 inline std::string to_str() const override{
 	std::ostringstream ss;
