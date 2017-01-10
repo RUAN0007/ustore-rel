@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 13:21:13
-   @Last_Modified_At:   2017-01-07 17:30:06
+   @Last_Modified_At:   2017-01-10 15:13:45
    @Last_Modified_By:   RUAN0007
 
 */
@@ -28,6 +28,18 @@ Page::Page(string table_name, const TupleDscp* tuple_schema, size_t page_size):
 		empty_slot_offset_(sizeof(int)){
 
 	this->buffer_ = new unsigned char[page_size]{0};
+}
+
+Page::Page(string table_name, const TupleDscp* tuple_schema, unsigned char* buffer, size_t page_size):
+		table_name_(table_name),
+		tuple_schema_(tuple_schema),
+		buffer_(buffer),
+		page_size_(page_size){
+
+
+	this->tuple_num_ = *reinterpret_cast<int*>(buffer);
+	this->empty_slot_offset_ = sizeof(int) + this->tuple_num_ * this->tuple_schema_->GetTupleSize();
+
 }
 
 Page::~Page() { delete[] this->buffer_;}

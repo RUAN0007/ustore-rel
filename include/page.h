@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 09:48:57
-   @Last_Modified_At:   2017-01-07 15:18:05
+   @Last_Modified_At:   2017-01-10 15:09:42
    @Last_Modified_By:   RUAN0007
 
 */
@@ -24,6 +24,9 @@ class Page
 
 public:
 	Page(std::string table_name_, const TupleDscp* tuple_schema, size_t page_size);
+
+	Page(std::string table_name_, const TupleDscp* tuple_schema, unsigned char* buffer, size_t page_size);
+	
 	~Page();
 
 	inline std::string GetTableName() const{ return table_name_;}
