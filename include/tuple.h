@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-09 19:22:32
+   @Last_Modified_At:   2017-01-10 11:55:06
    @Last_Modified_By:   RUAN0007
 
 */
@@ -57,9 +57,7 @@ public:
 	friend bool operator== (const TupleDscp &lhs, const TupleDscp &rhs);
     friend bool operator!= (const TupleDscp &lhs, const TupleDscp &rhs);
 
-    class Iterator{
 
-    };
 private:
 	// compute tuple_size_, field_offset once inner_schema_ is set up. 
 	void SetUpMetaData();
@@ -138,6 +136,12 @@ public:
     inline friend bool operator!= (const Tuple &lhs, const Tuple &rhs){
     	return !(lhs == rhs);
     }
+
+    class Iterator{
+    public:
+    	static Tuple::Iterator GetEmptyIterator();
+    };
+
 private:
 	unsigned char* back_store_;
 	unsigned start_position_;
