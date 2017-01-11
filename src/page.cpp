@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 13:21:13
-   @Last_Modified_At:   2017-01-10 19:56:03
+   @Last_Modified_At:   2017-01-11 11:15:19
    @Last_Modified_By:   RUAN0007
 
 */
@@ -42,6 +42,7 @@ Page::Page(string table_name, const TupleDscp* tuple_schema, unsigned char* buff
 }
 
 void Page::SetData(unsigned char* buffer, size_t page_size){
+	delete[] buffer_;
 	this->buffer_ = buffer;
 	this->page_size_ = page_size;
 	this->tuple_num_ = *reinterpret_cast<int*>(buffer);
@@ -92,6 +93,7 @@ int Page::InsertTuple(const Tuple* tuple, string* msg) {
 
 	this->empty_slot_offset_ += tuple_size;
 	++this->tuple_num_;
+	*reinterpret_cast<int*>(buffer_) = this->tuple_num_;
 
 	return this->tuple_num_ - 1;
 }
