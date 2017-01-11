@@ -29,11 +29,6 @@ TEST_EXEC_SRC=test.cpp
 # all: dir $(EXEC)
 all: $(EXEC) $(TEST_EXEC)
 
-dir: 
-	mkdir -p $(BUILD_DIR)/
-	mkdir -p $(OBJ_SRC_DIR)/
-	mkdir -p $(OBJ_TEST_DIR)/
-
 $(EXEC): $(OBJS) $(EXEC_SRC) | dir
 	$(LD) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
