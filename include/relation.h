@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-09 19:25:14
-   @Last_Modified_At:   2017-01-10 16:35:27
+   @Last_Modified_At:   2017-01-10 21:13:53
    @Last_Modified_By:   RUAN0007
 
 */
@@ -49,7 +49,7 @@ public:
 	Return:
 		the tuple with data as back store. Empty pointer if such tuple not exists. 
 */
-	Tuple* GetTuple(const std::string& branch_name, const Field* pk, Page* page, std::string& msg);
+	Tuple* GetTuple(const std::string& branch_name, const Field* pk, Page* page, std::string* msg);
 
 /*
 	Insert Tuple into current branch for later commit
@@ -61,7 +61,7 @@ public:
 	Return:
 		whether the operation successful or not
 */
-	bool InsertTuple(const Tuple* tuple, std::string& msg);
+	bool InsertTuple(const Tuple* tuple, std::string* msg);
 
 /*
 	Update Tuple into current branch for later commit
@@ -73,7 +73,7 @@ public:
 	Return:
 		whether the operation successful or not
 */
-	bool UpdateTuple(const Tuple* tuple, std::string& msg);
+	bool UpdateTuple(const Tuple* tuple, std::string* msg);
 /*
 	Remove Tuple for primary key into current branch for later commit
 
@@ -84,26 +84,26 @@ public:
 	Return:
 		whether the operation successful or not
 */
-	bool RemoveTuple(const Field* pk, std::string& msg);
+	bool RemoveTuple(const Field* pk, std::string* msg);
 
 /*
 	Commit the uncommited operations, e.g Insert, Update & Remove Tuple and create the snapshot
 
 	Args:
-		commit_id: the reference to hold commitID for this commit
+		commit_id: the pointer to hold commitID for this commit
 		msg: a string reference that hold any returned message. 
 	
 	Return:
 		whether the commit operation successful or not
 */
-	bool Commit(CommitID& commit_id, std::string& msg);
+	bool Commit(CommitID* commit_id, std::string* msg);
 
 /*
 	Merge branch1 and branch2 and make a commit. This commit shall fall into branch1. 
 	If tuples active in both branch1 and branch2, branch1's version takes the precedence.  
 
 	Args:
-		commit_ids: the reference to hold commitID for this commit
+		commit_ids: the pointer to hold commitID for this commit
 		branch_name1: the name of branch1
 		branch_name2: the name of branch2	
 		msg: a string reference that hold any returned message. 
@@ -111,7 +111,7 @@ public:
 	Return:
 		whether the commit operation successful or not
 */
-	bool Merge(CommitID& commit_id, const std::string& branch_name1, const std::string& branch_name2, std::string& msg);
+	bool Merge(CommitID* commit_id, const std::string& branch_name1, const std::string& branch_name2, std::string* msg);
 
 /*
 	Create a new branch rooted on the commit of another branch
@@ -120,12 +120,12 @@ public:
 		commit_id: the ID of the commit from base branch 
 		base_branch_bame: the name of base branch
 		new_branch_name: the name of created branch
-		msg: a string reference to hold any returned message
+		msg: a pointer of a string to hold any returned message
 
 	Return:
 		whether the operation successful or not
 */
-	bool Checkout(const CommitID& commit_id, const std::string& base_branch_name, const std::string& new_branch_name, std::string& msg);
+	bool Checkout(const CommitID& commit_id, const std::string& base_branch_name, const std::string& new_branch_name, std::string* msg);
 
 /*
 	Create a new branch from another branch
@@ -133,24 +133,36 @@ public:
 	Args:
 		base_branch_bame: the name of base branch
 		new_branch_name: the name of created branch
-		msg: a string reference to hold any returned message
+		msg: a pointer of a string to hold any returned message
 
 	Return:
 		whether the operation successful or not
 */
-	bool Branch(const std::string& base_branch_name, const std::string& new_branch_name, std::string& msg);
+	bool Branch(const std::string& base_branch_name, const std::string& new_branch_name, std::string* msg);
+
+/*
+	Switch to a existed branch
+
+	Args:
+		branch_bame: the name of the branch to be switched to
+		msg: a pointer of a string to hold any returned message
+
+	Return:
+		whether the operation successful or not
+*/
+	bool Switch(const std::string& branch_name, std::string* msg);
 
 /*
 	Scan all the active tuples in a branch
 
 	Args:
 		branch_name: the name of branch for scanning
-		msg: a string reference to hold any returned message
+		msg: a pointer of a string to hold any returned message
 
 	Return:
 		the tuple iterator to hold valid tuples. Valid tuple are stored in Read Buffer. 
 */
-	Tuple::Iterator Scan(const std::string& branch_name, std::string& msg);
+	Tuple::Iterator Scan(const std::string& branch_name, std::string* msg);
 
 /*
 	Scan all the active tuples in a branch1 BUT not in branch2
@@ -158,13 +170,13 @@ public:
 	Args:
 		branch_name1: the name of branch1
 		branch_name2: the name of branch2
-		msg: a string reference to hold any returned message
+		msg: a pointer of a string to hold any returned message
 
 	Return:
 		the tuple iterator to hold valid tuples. Valid tuples are stored in Read Buffer. 
 
 */
-	Tuple::Iterator Diff(const std::string& branch_name1, const std::string branch_name2, std::string& msg);
+	Tuple::Iterator Diff(const std::string& branch_name1, const std::string branch_name2, std::string* msg);
 
 /*
 	Scan all the active tuples in both branch1 and branch2 while in branch1 satisfying the predicate . 
@@ -173,13 +185,13 @@ public:
 		branch_name1: the name of branch1
 		branch_name2: the name of branch2
 		condition: the predicate to filter for valid tuples in branch1
-		msg: a string reference to hold any returned message
+		msg: a pointer of a string to hold any returned message
 
 	Return:
 		the tuple iterator to hold valid tuples. Valid tuples are stored in Read Buffer. 
 
 */
-	Tuple::Iterator Join(const std::string& branch_name1, const std::string branch_name2, const Predicate* condition, std::string& msg);
+	Tuple::Iterator Join(const std::string& branch_name1, const std::string branch_name2, const Predicate* condition, std::string* msg);
 
 /*
 	Set the pages for read buffer
@@ -262,7 +274,7 @@ Return:
 	whethe the branch exists
 
 */
-	// bool CheckGetBranchInfo(ustore::relation::Branch branch_record, const std::string& branch_name, std::string& msg) const;
+	// bool CheckGetBranchInfo(ustore::relation::Branch branch_record, const std::string& branch_name, std::string* msg) const;
 
 // private:
 	UstoreHeapStorage& operator=(const UstoreHeapStorage&) = delete; //Prevent assignment and copy
