@@ -66,7 +66,7 @@ Field* StrType::Parse(const unsigned char bytes[]) const{
 
 	string value( reinterpret_cast<const char*>(bytes),effective_size);
 
-	cout << "value: " << endl;
+	// cout << "value: " << endl;
 	// string value( reinterpret_cast<const char*>(bytes));
 	return new StrField(value);
 }
