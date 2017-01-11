@@ -2,7 +2,7 @@
 
 //    @Author: RUAN0007
 //    @Date:   2017-01-07 15:00:36
-//    @Last_Modified_At:   2017-01-11 09:50:10
+//    @Last_Modified_At:   2017-01-11 11:15:58
 //    @Last_Modified_By:   RUAN0007
 
 // */
@@ -14,6 +14,7 @@
 #include "field.h"
 #include "page.h"
 
+#include <cstring>
 #include "debug.h"
 #include <vector>
 
@@ -102,5 +103,37 @@ TEST(Page, AccessTuple) {
 
 	delete t3;
 	delete t4;
+	delete schema;
+}
+
+TEST(Page, SetData) {
+
+	const TupleDscp* schema = GetSchema();
+
+	unsigned char* tuple_buffer1 = new unsigned char[1024]{0};
+	Tuple t1 = GetTuple(tuple_buffer1,10,schema);
+
+	unsigned char* tuple_buffer2 = new unsigned char[1024]{0};
+	Tuple t2 = GetTuple(tuple_buffer2,15,schema);
+
+	Page p("table1", schema, 4096);
+
+	string* msg =new string();
+	EXPECT_EQ(p.InsertTuple(&t1, msg), 0);
+	EXPECT_EQ(p.InsertTuple(&t2, msg), 1);
+
+	EXPECT_EQ(p.GetTupleNumber(), 2);
+
+	Page p1("table1", schema, 4096);
+
+	unsigned char* p2_data = new unsigned char[4096]{0};
+
+	memcpy(p2_data, p.GetRawData(),p.GetPageSize());
+
+	// cout << "P1_data: " << string((char*)p2_data) << endl;
+
+	p1.SetData(p2_data, p.GetPageSize());
+	EXPECT_EQ(p1.GetTupleNumber(), 2);
+
 	delete schema;
 }
