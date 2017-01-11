@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 13:21:13
-   @Last_Modified_At:   2017-01-11 11:15:19
+   @Last_Modified_At:   2017-01-11 11:30:22
    @Last_Modified_By:   RUAN0007
 
 */
@@ -56,7 +56,7 @@ void Page::Reset() {
 	
 	delete[] this->buffer_;
 	this->buffer_ = new unsigned char[page_size_]{0};
-
+	this->tuple_num_ = 0;
 	empty_slot_offset_ = sizeof(int);	
 }
 
