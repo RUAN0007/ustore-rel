@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-10 09:16:56
-   @Last_Modified_At:   2017-01-10 21:17:54
+   @Last_Modified_At:   2017-01-11 14:40:08
    @Last_Modified_By:   RUAN0007
 
 */
@@ -24,12 +24,14 @@ using namespace boost;
 namespace ustore{
 namespace relation{	
 
-UstoreHeapStorage::UstoreHeapStorage(const string& relation_name, const TupleDscp& schema, ClientService* client):
-	relation_name_(relation_name), schema_(schema), client_(client) {
+UstoreHeapStorage::UstoreHeapStorage(const string& relation_name, const TupleDscp& schema, ClientService* client, Page* commited_page):
+	relation_name_(relation_name), schema_(schema), client_(client),commited_buffer_(commited_page) {
 		ustore::relation::Commit base_commit;
 
 		base_commit.id = NULL_VERSION;
 		base_commit.ustore_version = NULL_VERSION;
+		base_commit.tuple_presence = dynamic_bitset<>(0);
+		base_commit.tuple_positions = map<unsigned, RecordID>();
 
 		CommitID base_commit_id = NULL_VERSION;
 
@@ -43,6 +45,7 @@ UstoreHeapStorage::UstoreHeapStorage(const string& relation_name, const TupleDsc
 		master_branch.new_commit(base_commit_id);
 
 		this->branches_info_[master_branch_name] = master_branch;
+		this->current_branch_name_ = master_branch_name;
 	}
 
 UstoreHeapStorage::~UstoreHeapStorage() {
@@ -235,7 +238,6 @@ Tuple* UstoreHeapStorage::GetTuple(const string &branch_name, const Field* pk, P
 		return 0;
 	}
 
-
 	CommitID branch_commit_id = branch_info_it->second.commit_ids.back();
 
 	ustore::relation::Commit branch_last_commit = this->commit_info_[branch_commit_id];
@@ -246,11 +248,15 @@ Tuple* UstoreHeapStorage::GetTuple(const string &branch_name, const Field* pk, P
 		if (msg != 0) *msg = "Tuple with " + pk->to_str() + " does not exist in branch " + branch_name;
 		return 0;
 	}
-
 	RecordID tuple_pos = branch_last_commit.tuple_positions[bit_pos];
 
 	//Retrieve page and construct tuple from ustore
-	version_t version = tuple_pos.version;
+	version_t version = tuple_pos.version;	
+
+	// cout << "Version: " << tuple_pos.version << endl;
+	// cout << "Page Index: " << tuple_pos.tuple_index << endl;
+	// cout << endl;
+
 	value_t* page_value = this->client_->SyncGet(this->relation_name_, version);
 	
 	unsigned page_size = page_value->length();
@@ -259,6 +265,7 @@ Tuple* UstoreHeapStorage::GetTuple(const string &branch_name, const Field* pk, P
 	page_value->copy(reinterpret_cast<char*>(page_data), page_size);
 
 	page->SetData(page_data, page_size);	
+	// cout << "Page size: " << page->GetTupleNumber() << endl; 
 	delete page_value;
 
 	return page->GetTuple(tuple_pos.tuple_index);
@@ -278,17 +285,12 @@ bool UstoreHeapStorage::InsertTuple(const Tuple* tuple, std::string* msg){
 	ustore::relation::Commit branch_last_commit = this->commit_info_[branch_commit_id];
 
 	dynamic_bitset<> tuple_presence = branch_last_commit.tuple_presence;
+	// cout << "Presence: " << tuple_presence << endl;
 
-	if( bit_pos < tuple_presence.size() && tuple_presence.test(bit_pos)) {
-		if (msg != 0) *msg = "Tuple with " + pk->to_str() + " already exists in current branch " + current_branch_name_ + ".";
+	if(IsActiveTuple(bit_pos)) {
+		if (msg != 0) *msg = "Tuple with " + pk->to_str() + " has already exists in branch " + current_branch_name_;
 		return false;
 	}
-
-	if(this->modified_tuple_info_.find(bit_pos) != this->modified_tuple_info_.end()) {
-		if (msg != 0) *msg = "Tuple with " + pk->to_str() + " has been inserted after the last commit.";
-		return false;
-	}
-
 	int page_index = this->commited_buffer_->InsertTuple(tuple, msg);
 
 	if (page_index == -1) {
@@ -297,6 +299,9 @@ bool UstoreHeapStorage::InsertTuple(const Tuple* tuple, std::string* msg){
 	}
 
 	this->modified_tuple_info_[bit_pos] = page_index;
+	this->removed_tuple_pos_.erase(bit_pos);
+
+	*msg = "Update succeeded";
 	return true;
 }
 
@@ -311,17 +316,7 @@ bool UstoreHeapStorage::UpdateTuple(const Tuple* tuple, std::string* msg){
 
 	}
 
-	CommitID branch_commit_id = GetCurrentBranchInfo().commit_ids.back();
-	ustore::relation::Commit branch_last_commit = this->commit_info_[branch_commit_id];
-
-	dynamic_bitset<> tuple_presence = branch_last_commit.tuple_presence;
-
-
-	bool existInPreCommit = (bit_pos < tuple_presence.size() && tuple_presence.test(bit_pos));
-
-	bool existInCommit = (this->modified_tuple_info_.find(bit_pos) != this->modified_tuple_info_.end());
-
-	if(!existInPreCommit && !existInCommit) {
+	if(!IsActiveTuple(bit_pos)) {
 		if (msg != 0) *msg = "Tuple with " + pk->to_str() + " has not been inserted in branch " + current_branch_name_ ;
 		return false;
 	}
@@ -334,7 +329,33 @@ bool UstoreHeapStorage::UpdateTuple(const Tuple* tuple, std::string* msg){
 	}
 
 	this->modified_tuple_info_[bit_pos] = page_index;
+	this->removed_tuple_pos_.erase(bit_pos);
+
+	*msg = "Update succeeded";
 	return true;
+}
+
+bool UstoreHeapStorage::IsActiveTuple(unsigned bit_pos) const{
+
+
+	bool exist_pre_commit = ExistInPreCommit(bit_pos);
+
+	bool removed_in_commit = (this->removed_tuple_pos_.find(bit_pos) != this->removed_tuple_pos_.end());
+
+	bool modified_in_commit = (this->modified_tuple_info_.find(bit_pos) != this->modified_tuple_info_.end());
+
+
+	return !removed_in_commit && (modified_in_commit || exist_pre_commit);
+}
+
+bool UstoreHeapStorage::ExistInPreCommit(unsigned bit_pos) const {
+
+	CommitID branch_commit_id = GetCurrentBranchInfo().commit_ids.back();
+	ustore::relation::Commit branch_last_commit = this->commit_info_.find(branch_commit_id)->second;
+
+	dynamic_bitset<> tuple_presence = branch_last_commit.tuple_presence;
+
+	return  bit_pos < tuple_presence.size() && tuple_presence.test(bit_pos);
 }
 
 bool UstoreHeapStorage::RemoveTuple(const Field* pk, std::string* msg){
@@ -346,22 +367,15 @@ bool UstoreHeapStorage::RemoveTuple(const Field* pk, std::string* msg){
 		return false;
 	}
 
-	CommitID branch_commit_id = GetCurrentBranchInfo().commit_ids.back();
-	ustore::relation::Commit branch_last_commit = this->commit_info_[branch_commit_id];
-
-	dynamic_bitset<> tuple_presence = branch_last_commit.tuple_presence;
-
-
-	bool existInPreCommit = (bit_pos < tuple_presence.size() && tuple_presence.test(bit_pos));
-
-	bool existInCommit = (this->modified_tuple_info_.find(bit_pos) != this->modified_tuple_info_.end());
-
-	if(!existInPreCommit && !existInCommit) {
+	if(!IsActiveTuple(bit_pos)) {
 		if (msg != 0) *msg = "Tuple with " + pk->to_str() + " has not been inserted in branch " + current_branch_name_ ;
 		return false;
 	}
 
 	this->modified_tuple_info_.erase(bit_pos);
+
+	if(ExistInPreCommit(bit_pos)) this->removed_tuple_pos_.insert(bit_pos);
+	*msg = "Remove succeeded";
 	return true;
 }
 
@@ -450,6 +464,11 @@ bool UstoreHeapStorage::Commit(CommitID* commit_id, std::string* msg) {
 		return false;
 	}
 
+	if(this->modified_tuple_info_.size() == 0 && this->removed_tuple_pos_.size() == 0){
+		if(msg != 0) *msg = "There exists no tuple operations. Can not commit!.";
+		return false;	
+	}
+
 	CommitID last_commit_id = GetCurrentBranchInfo().commit_ids.back();
 
 //SyncPut the page to ustore 
@@ -458,7 +477,6 @@ bool UstoreHeapStorage::Commit(CommitID* commit_id, std::string* msg) {
 	ustore::relation::Commit last_commit = this->commit_info_[last_commit_id];
 
 	version_t ustore_version = this->client_->SyncPut(this->relation_name_, last_commit.ustore_version, ustore_value);
-
 
 	dynamic_bitset<> new_tuple_presence = last_commit.tuple_presence;
 	map<unsigned, RecordID> new_tuple_pos = last_commit.tuple_positions;
@@ -504,6 +522,7 @@ bool UstoreHeapStorage::Commit(CommitID* commit_id, std::string* msg) {
 	this->commit_info_[new_commit.id] = new_commit;
 	this->branches_info_[this->current_branch_name_].new_commit(new_commit.id);
 
+	*msg = "Commit Succeeded";
 	return true;
 }
 
@@ -512,7 +531,7 @@ bool UstoreHeapStorage::Checkout(const CommitID& commit_id, const std::string& b
 
 //check for any uncommited tuples
 	if(this->commited_buffer_->GetTupleNumber() > 0){
-		if(this->modified_tuple_info_.size() != 0 || this->removed_tuple_pos_.size() != 0) {
+		if(this->modified_tuple_info_.size() == 0 || this->removed_tuple_pos_.size() == 0) {
 			LOG(LOG_FATAL, "Inconsistent write buffer. ");
 		}
 		if(msg != 0) *msg = "There exists uncommited tuple operation. Can not check out!.";

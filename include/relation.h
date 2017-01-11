@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-09 19:25:14
-   @Last_Modified_At:   2017-01-10 21:13:53
+   @Last_Modified_At:   2017-01-11 14:35:17
    @Last_Modified_By:   RUAN0007
 
 */
@@ -32,7 +32,7 @@ namespace relation{
 class UstoreHeapStorage{
 
 public:
-	UstoreHeapStorage(const std::string& relation_name, const TupleDscp& schema, ClientService *client);
+	UstoreHeapStorage(const std::string& relation_name, const TupleDscp& schema, ClientService *client, Page* commited_page);
 
 	~UstoreHeapStorage();
 
@@ -261,6 +261,28 @@ Returns:
 	//convert primary key field into bit position
 	//-1 if not found
 	int pk2index(const Field* f) const;
+
+/*
+Check whether a tuple of bit pos is active in previous commit`
+
+Args:
+	the bit position for that tuple
+
+Return:
+	whether the tuple is active in previous commit
+*/
+	bool ExistInPreCommit(unsigned bit_pos) const;
+
+/*
+Check whether a tuple of bit pos is active in current state as well as comit
+
+Args:
+	the bit position for that tuple
+
+Return:
+	whether the tuple is active now. 
+*/
+	bool IsActiveTuple(unsigned bit_pos) const;
 
 /*
 Check a branch existence and get branch info based on the branch name.
