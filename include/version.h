@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-09 18:49:59
-   @Last_Modified_At:   2017-01-10 09:36:01
+   @Last_Modified_At:   2017-01-10 19:36:21
    @Last_Modified_By:   RUAN0007
 
 */
@@ -37,8 +37,10 @@ typedef struct {
 	// }
 	
 	CommitID id; //id of this commit. Shall be the version_t of start_version
-	version_t start_version; //first version_t of the commited page
-	version_t end_version; //last version_t of the commited page
+
+	version_t ustore_version; 
+	// version_t start_version; //first version_t of the commited page
+	// version_t end_version; //last version_t of the commited page
 
 	//mapping pairs of tuple bit position to tuple's location in Ustore
 	std::map<unsigned, RecordID> tuple_positions;
