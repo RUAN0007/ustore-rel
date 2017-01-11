@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 13:21:13
-   @Last_Modified_At:   2017-01-10 16:26:45
+   @Last_Modified_At:   2017-01-10 19:56:03
    @Last_Modified_By:   RUAN0007
 
 */
@@ -70,18 +70,18 @@ Tuple* Page::GetTuple(unsigned index) const {
 }
 
 
-int Page::InsertTuple(const Tuple* tuple, string& msg) {
+int Page::InsertTuple(const Tuple* tuple, string* msg) {
 
 	size_t tuple_size = this->tuple_schema_->GetTupleSize();
 
 	if (this->empty_slot_offset_ + tuple_size > page_size_){
-		msg = "Not Enough Room in this page. ";
+		if (msg != 0)  *msg = "Not Enough Room in this page. ";
 		return -1;
 	}
 
 	if(this->tuple_schema_ != tuple->GetSchema()){
 
-		msg = "Incompatible Tuple Type. ";
+		if (msg != 0) *msg = "Incompatible Tuple Type. ";
 		return -1;
 	}
 

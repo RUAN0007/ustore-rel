@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-10 11:55:06
+   @Last_Modified_At:   2017-01-11 09:44:21
    @Last_Modified_By:   RUAN0007
 
 */
@@ -96,11 +96,11 @@ public:
 
 	//Set A tuple's field by a new field by name
 	// msg will contain the message of this operation, e.g, failure reason or succeeded.
-	bool SetFieldByName(std::string field_name, Field* new_field, std::string& msg);
+	bool SetFieldByName(std::string field_name, Field* new_field, std::string* msg);
 
 	//Set A tuple's field by a new field by index
 	// msg will contain the message of this operation, e.g, failure reason or succeeded.
-	bool SetFieldByIndex(unsigned index, Field* new_field, std::string& msg);
+	bool SetFieldByIndex(unsigned index, Field* new_field, std::string* msg);
 
 	inline const TupleDscp* GetSchema() const{return schema_;}
 
@@ -139,7 +139,9 @@ public:
 
     class Iterator{
     public:
-    	static Tuple::Iterator GetEmptyIterator();
+    	inline static Tuple::Iterator GetEmptyIterator(){
+    		return Tuple::Iterator();
+    	};
     };
 
 private:

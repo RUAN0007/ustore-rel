@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 09:48:57
-   @Last_Modified_At:   2017-01-10 16:27:03
+   @Last_Modified_At:   2017-01-10 20:16:23
    @Last_Modified_By:   RUAN0007
 
 */
@@ -38,7 +38,12 @@ public:
 
 	inline unsigned GetTupleNumber() const{ return tuple_num_;}
 
+	inline const unsigned char* GetRawData() const {
+		return buffer_;
+	}
+
 	void SetData(unsigned char* buffer, size_t page_size);
+
 
 	void Reset();
 
@@ -49,7 +54,7 @@ public:
 	//Return the tuple position in this page
 
 	//Return -1 if insertion fails. 
-	int InsertTuple(const Tuple* tuple, std::string& msg);
+	int InsertTuple(const Tuple* tuple, std::string* msg);
 
 private:
 	std::string table_name_;

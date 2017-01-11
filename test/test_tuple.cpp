@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 19:45:52
-   @Last_Modified_At:   2017-01-07 17:07:40
+   @Last_Modified_At:   2017-01-11 09:47:29
    @Last_Modified_By:   RUAN0007
 
 */
@@ -117,7 +117,7 @@ TEST(Tuple, EQUAL) {
 
 	ASSERT_EQ(memcmp(b1,b2,1000),0); 
 
-	string msg;
+	string* msg = new string();
 
 	Field *int1 = new IntField(999);
 	Field *str2 = new StrField("Str2");	
@@ -169,7 +169,7 @@ TEST(Tuple, Predicate) {
 
 	Tuple t(bytes,10,  schema);
 
-	string msg;
+	string* msg =new string();
 
 	Field *int1 = new IntField(999);
 	t.SetFieldByName("1Int", int1, msg);
@@ -216,7 +216,7 @@ TEST(Tuple, Field) {
 
 	Tuple t(bytes,10,  schema);
 
-	string msg;
+	string* msg =new string();
 
 	Field *int1 = new IntField(999);
 	ASSERT_TRUE(t.SetFieldByName("1Int", int1, msg));

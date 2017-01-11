@@ -2,7 +2,7 @@
 
 //    @Author: RUAN0007
 //    @Date:   2017-01-07 15:00:36
-//    @Last_Modified_At:   2017-01-07 17:26:38
+//    @Last_Modified_At:   2017-01-11 09:50:10
 //    @Last_Modified_By:   RUAN0007
 
 // */
@@ -41,7 +41,7 @@ Tuple GetTuple(unsigned char* bytes, unsigned position, const TupleDscp* schema)
 
 	Tuple t(bytes,position, schema);
 
-	string msg;
+	string* msg =new string();
 
 	Field *int1 = new IntField(999);
 	t.SetFieldByName("1Int", int1, msg);
@@ -86,7 +86,7 @@ TEST(Page, AccessTuple) {
 
 	Page p("table1", schema, 4096);
 
-	string msg;
+	string* msg =new string();
 	EXPECT_EQ(p.InsertTuple(&t1, msg), 0);
 	EXPECT_EQ(p.InsertTuple(&t2, msg), 1);
 
