@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-10 09:16:56
-   @Last_Modified_At:   2017-01-11 15:06:50
+   @Last_Modified_At:   2017-01-11 16:18:14
    @Last_Modified_By:   RUAN0007
 
 */
@@ -150,6 +150,17 @@ Tuple::Iterator UstoreHeapStorage::Diff(const std::string& branch_name1, const s
 	ustore::relation::Commit branch2_commit = this->commit_info_[branch2_last_commitID];
 
 //Retrieve the bitmap for the last commit of two branches and perform differencing
+
+	//Resize to be the same length
+	size_t b1_size = branch1_commit.tuple_presence.size();
+	size_t b2_size = branch2_commit.tuple_presence.size();
+
+	if(b1_size > b2_size) {
+		branch2_commit.tuple_presence.resize(b1_size, 0);
+	}else{
+		branch1_commit.tuple_presence.resize(b2_size, 0);
+	}
+
 	dynamic_bitset<> tuple_presence = branch1_commit.tuple_presence - branch2_commit.tuple_presence;
 
 //Retrieve the tuple record for branch1
@@ -181,6 +192,15 @@ Tuple::Iterator UstoreHeapStorage::Join(const std::string& branch_name1, const s
 	CommitID branch2_last_commitID = branch_info_it->second.commit_ids.back();
 	ustore::relation::Commit branch2_commit = this->commit_info_[branch2_last_commitID];
 
+	//Resize to be the same length
+	size_t b1_size = branch1_commit.tuple_presence.size();
+	size_t b2_size = branch2_commit.tuple_presence.size();
+
+	if(b1_size > b2_size) {
+		branch2_commit.tuple_presence.resize(b1_size, 0);
+	}else{
+		branch1_commit.tuple_presence.resize(b2_size, 0);
+	}
 //Retrieve the bitmap for the last commit of two branches and perform bitwise AND
 	dynamic_bitset<> tuple_presence = branch1_commit.tuple_presence & branch2_commit.tuple_presence;
 
@@ -406,6 +426,15 @@ bool UstoreHeapStorage::Merge(CommitID* commit_id, const std::string& branch_nam
 	ustore::relation::Commit branch2_commit = this->commit_info_[branch2_last_commitID];
 	map<unsigned, RecordID> branch2_tuple_pos = branch2_commit.tuple_positions;	
 
+	//Resize to be the same length
+	size_t b1_size = branch1_commit.tuple_presence.size();
+	size_t b2_size = branch2_commit.tuple_presence.size();
+
+	if(b1_size > b2_size) {
+		branch2_commit.tuple_presence.resize(b1_size, 0);
+	}else{
+		branch1_commit.tuple_presence.resize(b2_size, 0);
+	}
 	//Perform the OR operation on bitmap
 	dynamic_bitset<> merged_tuple_presence = branch1_commit.tuple_presence | branch2_commit.tuple_presence;
 
