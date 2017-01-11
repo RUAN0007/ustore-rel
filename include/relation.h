@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-09 19:25:14
-   @Last_Modified_At:   2017-01-11 14:35:17
+   @Last_Modified_At:   2017-01-11 15:08:29
    @Last_Modified_By:   RUAN0007
 
 */
@@ -128,7 +128,7 @@ public:
 	bool Checkout(const CommitID& commit_id, const std::string& base_branch_name, const std::string& new_branch_name, std::string* msg);
 
 /*
-	Create a new branch from another branch
+	Create a new branch from another branch and switch to new branch
 
 	Args:
 		base_branch_bame: the name of base branch
@@ -283,6 +283,14 @@ Return:
 	whether the tuple is active now. 
 */
 	bool IsActiveTuple(unsigned bit_pos) const;
+
+/*
+Check whether the workspace is empty, aka no uncommited operation
+
+Return:
+	true if no uncommited opearation
+*/
+	bool IsEmptyWorkSpace() const;
 
 /*
 Check a branch existence and get branch info based on the branch name.

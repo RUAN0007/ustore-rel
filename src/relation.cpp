@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-10 09:16:56
-   @Last_Modified_At:   2017-01-11 14:40:08
+   @Last_Modified_At:   2017-01-11 15:06:50
    @Last_Modified_By:   RUAN0007
 
 */
@@ -456,6 +456,9 @@ bool UstoreHeapStorage::Merge(CommitID* commit_id, const std::string& branch_nam
 	return true;
 }
 
+bool UstoreHeapStorage::IsEmptyWorkSpace() const{
+	return this->modified_tuple_info_.size() == 0 && this->removed_tuple_pos_.size() == 0;
+}
 
 bool UstoreHeapStorage::Commit(CommitID* commit_id, std::string* msg) {
 
@@ -464,7 +467,7 @@ bool UstoreHeapStorage::Commit(CommitID* commit_id, std::string* msg) {
 		return false;
 	}
 
-	if(this->modified_tuple_info_.size() == 0 && this->removed_tuple_pos_.size() == 0){
+	if(IsEmptyWorkSpace()){
 		if(msg != 0) *msg = "There exists no tuple operations. Can not commit!.";
 		return false;	
 	}
@@ -530,10 +533,8 @@ bool UstoreHeapStorage::Checkout(const CommitID& commit_id, const std::string& b
 	
 
 //check for any uncommited tuples
-	if(this->commited_buffer_->GetTupleNumber() > 0){
-		if(this->modified_tuple_info_.size() == 0 || this->removed_tuple_pos_.size() == 0) {
-			LOG(LOG_FATAL, "Inconsistent write buffer. ");
-		}
+	if(!IsEmptyWorkSpace()){
+
 		if(msg != 0) *msg = "There exists uncommited tuple operation. Can not check out!.";
 		return false;	
 	}	
@@ -569,15 +570,16 @@ bool UstoreHeapStorage::Checkout(const CommitID& commit_id, const std::string& b
 
 	this->branches_info_[new_branch_name] = new_branch;
 
+	Switch(new_branch.branch_name,msg);
+
+	*msg = "Create a new branch " + new_branch_name + " and switch to that";
 	return true;
 }
 
 bool UstoreHeapStorage::Switch(const string& branch_name, std::string *msg) {
 
-	if(this->commited_buffer_->GetTupleNumber() > 0){
-		if(this->modified_tuple_info_.size() != 0 || this->removed_tuple_pos_.size() != 0) {
-			LOG(LOG_FATAL, "Inconsistent write buffer. ");
-		}
+	if(!IsEmptyWorkSpace()){
+
 		if(msg != 0) *msg = "There exists uncommited tuple operation. Can not switch.";
 		return false;	
 	}	
@@ -591,6 +593,7 @@ bool UstoreHeapStorage::Switch(const string& branch_name, std::string *msg) {
 
 	this->current_branch_name_ = branch_name;
 
+	*msg = "Switch to Branch " + branch_name;
 	return true;
 }
 
