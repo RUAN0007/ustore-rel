@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-10 09:16:56
-   @Last_Modified_At:   2017-01-13 14:35:42
+   @Last_Modified_At:   2017-01-13 15:21:44
    @Last_Modified_By:   RUAN0007
 
 */
@@ -223,7 +223,7 @@ vector<RecordID> UstoreHeapStorage::GetTupleRecords(const dynamic_bitset<>& tupl
 
 		auto recordID_it = tuple_positions.find(set_index);
 
-		if(recordID_it != tuple_positions.end()){
+		if(recordID_it == tuple_positions.end()){
 			LOG(LOG_FATAL, " Set bit %d is not found in tuple_positions.", set_index);
 		}
 		records.push_back(recordID_it->second);
