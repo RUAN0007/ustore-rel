@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 09:48:57
-   @Last_Modified_At:   2017-01-13 14:14:43
+   @Last_Modified_At:   2017-01-13 14:40:50
    @Last_Modified_By:   RUAN0007
 
 */
@@ -78,8 +78,8 @@ private:
 	const TupleDscp* tuple_schema_; 
 
 	unsigned empty_slot_offset_;
-	unsigned tuple_num_;
 	size_t page_size_;
+	unsigned tuple_num_;
 
 	unsigned char* buffer_;
 	
