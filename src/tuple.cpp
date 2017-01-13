@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 13:12:52
-   @Last_Modified_At:   2017-01-13 14:25:29
+   @Last_Modified_At:   2017-01-13 14:56:36
    @Last_Modified_By:   RUAN0007
 
 */
@@ -263,6 +263,11 @@ bool PageIterator::Next() {
 
 bool PageIterator::End() const {
 	return curr_page_ == tuple_pages_.end();
+}
+
+void PageIterator::Reset() {
+	this->curr_page_ = this->tuple_pages_.begin();
+	LoadPage();
 }
 
 void PageIterator::ReorganizeTuplePos(const vector<RecordID>& tuple_pos) {

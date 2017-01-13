@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-13 14:24:34
+   @Last_Modified_At:   2017-01-13 14:55:22
    @Last_Modified_By:   RUAN0007
 
 */
@@ -159,6 +159,8 @@ public:
 		//Return whether the iterator reaches the end
 		virtual bool End() const = 0;
 
+		virtual void Reset() = 0;
+
 		static Iterator* GetEmptyIterator();
 
 	private:
@@ -180,6 +182,8 @@ class Tuple::Iterator::EmptyIterator : public Tuple::Iterator {
 	inline bool Next() override {return false;}
 
 	inline bool End() const override {return true;}
+
+	inline void Reset() override {}
 };
 
 class Page;
@@ -199,6 +203,8 @@ public:
 	bool Next() override;
 
 	bool End() const override;
+
+	void Reset() override;
 
 private:
 
