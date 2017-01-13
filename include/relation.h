@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-09 19:25:14
-   @Last_Modified_At:   2017-01-11 15:08:29
+   @Last_Modified_At:   2017-01-13 14:34:13
    @Last_Modified_By:   RUAN0007
 
 */
@@ -162,7 +162,7 @@ public:
 	Return:
 		the tuple iterator to hold valid tuples. Valid tuple are stored in Read Buffer. 
 */
-	Tuple::Iterator Scan(const std::string& branch_name, std::string* msg);
+	Tuple::Iterator* Scan(const std::string& branch_name, std::string* msg);
 
 /*
 	Scan all the active tuples in a branch1 BUT not in branch2
@@ -176,7 +176,7 @@ public:
 		the tuple iterator to hold valid tuples. Valid tuples are stored in Read Buffer. 
 
 */
-	Tuple::Iterator Diff(const std::string& branch_name1, const std::string branch_name2, std::string* msg);
+	Tuple::Iterator* Diff(const std::string& branch_name1, const std::string branch_name2, std::string* msg);
 
 /*
 	Scan all the active tuples in both branch1 and branch2 while in branch1 satisfying the predicate . 
@@ -191,7 +191,7 @@ public:
 		the tuple iterator to hold valid tuples. Valid tuples are stored in Read Buffer. 
 
 */
-	Tuple::Iterator Join(const std::string& branch_name1, const std::string branch_name2, const Predicate* condition, std::string* msg);
+	Tuple::Iterator* Join(const std::string& branch_name1, const std::string branch_name2, const Predicate* condition, std::string* msg);
 
 /*
 	Set the pages for read buffer
@@ -199,7 +199,7 @@ public:
 	Args:
 		a vector of pages for read buffer
 */
-	// void SetReadBuffer(std::vector<Page*> read_pages);
+	void SetReadBuffer(Page* read_page);
 
 /*
 	Set the pages for write buffer
@@ -227,6 +227,7 @@ public:
 
 
 
+private:
 
 
 /*
@@ -256,7 +257,7 @@ Args:
 Returns:
 	A tuple iterator
 */
-	Tuple::Iterator ConstructTupleIterator(const std::vector<RecordID>& tuples_pos_,const Predicate* predicate);
+	// Tuple::Iterator* ConstructTupleIterator(const std::vector<RecordID>& tuples_pos_,const Predicate* predicate);
 
 	//convert primary key field into bit position
 	//-1 if not found
@@ -306,7 +307,6 @@ Return:
 */
 	// bool CheckGetBranchInfo(ustore::relation::Branch branch_record, const std::string& branch_name, std::string* msg) const;
 
-// private:
 	UstoreHeapStorage& operator=(const UstoreHeapStorage&) = delete; //Prevent assignment and copy
     UstoreHeapStorage(const UstoreHeapStorage&) = delete;
 
@@ -322,7 +322,7 @@ Return:
 	std::map<CommitID, ustore::relation::Commit> commit_info_;
 
 //Read Buffer Pages
-	// std::vector<Page*> read_pages_;
+	Page* read_page_; 
 
 //Write Buffer Pages
 	// std::vector<Page*> write_pages_;

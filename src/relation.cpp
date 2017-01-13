@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-10 09:16:56
-   @Last_Modified_At:   2017-01-11 16:18:14
+   @Last_Modified_At:   2017-01-13 14:35:42
    @Last_Modified_By:   RUAN0007
 
 */
@@ -56,9 +56,10 @@ UstoreHeapStorage::~UstoreHeapStorage() {
 	}
 }
 
-// void UstoreHeapStorage::SetReadBuffer(vector<Page*> read_pages) {
-// 	this->read_pages_ = read_pages;
-// }
+void UstoreHeapStorage::SetReadBuffer(Page* read_page) {
+	read_page->Reset(this->relation_name_, &(this->schema_));
+	this->read_page_ = read_page;
+}
 
 void UstoreHeapStorage::SetCommitBuffer(Page* page) {
 	page->Reset();
@@ -111,7 +112,7 @@ bool UstoreHeapStorage::Branch(const std::string& base_branch_name, const std::s
 
 }
 
-Tuple::Iterator UstoreHeapStorage::Scan(const std::string& branch_name, std::string* msg){
+Tuple::Iterator* UstoreHeapStorage::Scan(const std::string& branch_name, std::string* msg){
 
 //Check for branch existence. 
 	auto branch_info_it = this->branches_info_.find(branch_name); 
@@ -125,10 +126,10 @@ Tuple::Iterator UstoreHeapStorage::Scan(const std::string& branch_name, std::str
 
 	vector<RecordID> record_ids = this->GetTupleRecords(commit_record.tuple_presence, commit_record.tuple_positions);
 
-	return this->ConstructTupleIterator(record_ids, 0);//0 for empty predicate
+	return new PageIterator(this->relation_name_, this->client_, this->read_page_, record_ids); 
 }
 
-Tuple::Iterator UstoreHeapStorage::Diff(const std::string& branch_name1, const std::string branch_name2, std::string* msg){
+Tuple::Iterator* UstoreHeapStorage::Diff(const std::string& branch_name1, const std::string branch_name2, std::string* msg){
 
 //Check for branch existence. 
 	auto branch_info_it = this->branches_info_.find(branch_name1); 
@@ -168,10 +169,10 @@ Tuple::Iterator UstoreHeapStorage::Diff(const std::string& branch_name1, const s
 
 	vector<RecordID> record_ids = this->GetTupleRecords(tuple_presence, branch1_tuple_pos);
 
-	return this->ConstructTupleIterator(record_ids, 0);//0 for empty predicate
+	return new PageIterator(this->relation_name_, this->client_, this->read_page_, record_ids); 
 }
 
-Tuple::Iterator UstoreHeapStorage::Join(const std::string& branch_name1, const std::string branch_name2, const Predicate* condition, std::string* msg){
+Tuple::Iterator* UstoreHeapStorage::Join(const std::string& branch_name1, const std::string branch_name2, const Predicate* predicate , std::string* msg){
 
 //Check for branch existence. 
 	auto branch_info_it = this->branches_info_.find(branch_name1); 
@@ -209,7 +210,7 @@ Tuple::Iterator UstoreHeapStorage::Join(const std::string& branch_name1, const s
 
 	vector<RecordID> record_ids = this->GetTupleRecords(tuple_presence, branch1_tuple_pos);
 
-	return this->ConstructTupleIterator(record_ids, condition);
+	return new PageIterator(this->relation_name_, this->client_, this->read_page_, record_ids,predicate); 
 }
 
 
@@ -285,7 +286,6 @@ Tuple* UstoreHeapStorage::GetTuple(const string &branch_name, const Field* pk, P
 	page_value->copy(reinterpret_cast<char*>(page_data), page_size);
 
 	page->SetData(page_data, page_size);	
-	// cout << "Page size: " << page->GetTupleNumber() << endl; 
 	delete page_value;
 
 	return page->GetTuple(tuple_pos.tuple_index);
@@ -626,9 +626,10 @@ bool UstoreHeapStorage::Switch(const string& branch_name, std::string *msg) {
 	return true;
 }
 
-Tuple::Iterator UstoreHeapStorage::ConstructTupleIterator(const std::vector<RecordID>& tuples_pos_,const Predicate* predicate) {
-	
-	return Tuple::Iterator::GetEmptyIterator();	
-}
+// Tuple::Iterator* UstoreHeapStorage::ConstructTupleIterator(const std::vector<RecordID>& tuples_pos_,const Predicate* predicate) {
+
+
+// 	return Tuple::Iterator::GetEmptyIterator();	
+// }
 }
 }
