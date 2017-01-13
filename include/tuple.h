@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-13 09:19:24
+   @Last_Modified_At:   2017-01-13 10:18:23
    @Last_Modified_By:   RUAN0007
 
 */
@@ -110,6 +110,8 @@ public:
 	}
 
 	inline bool IsSatisfy(const Predicate* predicate) const{
+		if(predicate == 0) return true;
+		
 		std::string field_name = predicate->GetFieldName();
 
 		Field* field = GetFieldByName(field_name);
