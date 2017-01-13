@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 13:12:52
-   @Last_Modified_At:   2017-01-13 14:56:36
+   @Last_Modified_At:   2017-01-13 15:30:57
    @Last_Modified_By:   RUAN0007
 
 */
@@ -214,8 +214,9 @@ PageIterator::PageIterator(const string& relation_name, ClientService* client, P
 		stored_page_(stored_page),
 		predicate_(predicate){
 
+
 	this->ReorganizeTuplePos(tuple_pos);
-	LoadPage();
+	Reset();
 }
 
 PageIterator::PageIterator(const string& relation_name, ClientService* client, Page* stored_page, const std::vector<RecordID>& tuple_pos):
