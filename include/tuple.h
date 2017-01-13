@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-11 09:44:21
+   @Last_Modified_At:   2017-01-13 09:19:24
    @Last_Modified_By:   RUAN0007
 
 */
@@ -109,14 +109,14 @@ public:
 		return back_store_ + start_position_;
 	}
 
-	inline bool IsSatisfy(const Predicate& predicate) const{
-		std::string field_name = predicate.GetFieldName();
+	inline bool IsSatisfy(const Predicate* predicate) const{
+		std::string field_name = predicate->GetFieldName();
 
 		Field* field = GetFieldByName(field_name);
 
 		if (field == 0) return false;
 
-		bool isTrue = field->IsSatisified(predicate.GetOp(), predicate.GetField());
+		bool isTrue = field->IsSatisified(predicate->GetOp(), predicate->GetField());
 		delete field;
 
 		return isTrue;
