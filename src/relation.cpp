@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-10 09:16:56
-   @Last_Modified_At:   2017-01-13 16:52:44
+   @Last_Modified_At:   2017-01-13 17:01:11
    @Last_Modified_By:   RUAN0007
 
 */
@@ -25,7 +25,8 @@ namespace ustore{
 namespace relation{	
 
 UstoreHeapStorage::UstoreHeapStorage(const string& relation_name, const TupleDscp& schema, ClientService* client, Page* commited_page):
-	relation_name_(relation_name), schema_(schema), client_(client),commited_buffer_(commited_page) {
+		commited_buffer_(commited_page),relation_name_(relation_name),schema_(schema),client_(client){
+			
 		CommitRecord base_commit;
 
 		base_commit.id = NULL_VERSION;

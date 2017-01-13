@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 09:48:57
-   @Last_Modified_At:   2017-01-13 14:40:50
+   @Last_Modified_At:   2017-01-13 17:04:25
    @Last_Modified_By:   RUAN0007
 
 */
@@ -77,10 +77,10 @@ private:
 	std::string table_name_;
 	const TupleDscp* tuple_schema_; 
 
-	unsigned empty_slot_offset_;
 	size_t page_size_;
 	unsigned tuple_num_;
 
+	unsigned empty_slot_offset_;
 	unsigned char* buffer_;
 	
 };
