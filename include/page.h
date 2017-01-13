@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 09:48:57
-   @Last_Modified_At:   2017-01-10 20:16:23
+   @Last_Modified_At:   2017-01-13 14:14:43
    @Last_Modified_By:   RUAN0007
 
 */
@@ -44,9 +44,26 @@ public:
 
 	void SetData(unsigned char* buffer, size_t page_size);
 
+	inline void Reset(std::string relation_name, const TupleDscp* tuple_schema, size_t page_size){
+		this->table_name_ = relation_name;
+		this->tuple_schema_= tuple_schema;
+		Reset(page_size);
+	}
 
+	inline void Reset(std::string relation_name, const TupleDscp* tuple_schema){
+		this->table_name_ = relation_name;
+		this->tuple_schema_= tuple_schema;
+		Reset();
+	}
+
+	//Reset the page data without changing the page size
+	//memcpy 0 to allocated bytes
 	void Reset();
 
+	//Reset the page data with changing the page size
+	//Reallocate and initialize the memory
+	void Reset(size_t page_size);
+	
 	//return 0 if index > tuple_num_
 	Tuple* GetTuple(unsigned index) const;
 

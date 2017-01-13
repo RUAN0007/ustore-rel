@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 13:21:13
-   @Last_Modified_At:   2017-01-11 11:30:22
+   @Last_Modified_At:   2017-01-13 14:17:05
    @Last_Modified_By:   RUAN0007
 
 */
@@ -54,8 +54,17 @@ Page::~Page() { delete[] this->buffer_;}
 
 void Page::Reset() {
 	
+	// delete[] this->buffer_;
+	// this->buffer_ = new unsigned char[page_size]{0};
+	memset(this->buffer_, 0, this->page_size_);
+	this->tuple_num_ = 0;
+	empty_slot_offset_ = sizeof(int);	
+}
+
+void Page::Reset(size_t page_size) {
+	
 	delete[] this->buffer_;
-	this->buffer_ = new unsigned char[page_size_]{0};
+	this->buffer_ = new unsigned char[page_size]{0};
 	this->tuple_num_ = 0;
 	empty_slot_offset_ = sizeof(int);	
 }
