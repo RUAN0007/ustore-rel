@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-13 13:56:49
+   @Last_Modified_At:   2017-01-13 14:03:20
    @Last_Modified_By:   RUAN0007
 
 */
@@ -185,7 +185,7 @@ class Tuple::Iterator::EmptyIterator : public Tuple::Iterator {
 class PageIterator: public Tuple::Iterator {
 public:
 	PageIterator(const std::string& relation_name, ClientService* client, Page* stored_page, 
-		const std::vector<RecordID>& tuple_pos, Predicate* predicate);
+		const std::vector<RecordID>& tuple_pos, const Predicate* predicate);
 
 	PageIterator(const std::string& relation_name, ClientService* client, Page* stored_page, 
 		const std::vector<RecordID>& tuple_pos);
@@ -210,7 +210,7 @@ private:
 	std::string relation_name_;
 	ClientService* client_;
 	Page* stored_page_;
-	Predicate* predicate_;
+	const Predicate* predicate_;
 	std::map<version_t, std::vector<unsigned>> tuple_pages_;
 
 

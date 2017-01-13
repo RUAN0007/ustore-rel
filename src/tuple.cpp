@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 13:12:52
-   @Last_Modified_At:   2017-01-13 13:57:00
+   @Last_Modified_At:   2017-01-13 14:03:32
    @Last_Modified_By:   RUAN0007
 
 */
@@ -207,7 +207,7 @@ Tuple::Iterator* Tuple::Iterator::GetEmptyIterator() {
 	return new Tuple::Iterator::EmptyIterator();
 }
 
-PageIterator::PageIterator(const string& relation_name, ClientService* client, Page* stored_page, const std::vector<RecordID>& tuple_pos, Predicate* predicate):
+PageIterator::PageIterator(const string& relation_name, ClientService* client, Page* stored_page, const std::vector<RecordID>& tuple_pos, const Predicate* predicate):
 		relation_name_(relation_name),
 		client_(client),
 		stored_page_(stored_page),
