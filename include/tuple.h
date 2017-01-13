@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-13 14:03:20
+   @Last_Modified_At:   2017-01-13 14:24:34
    @Last_Modified_By:   RUAN0007
 
 */
@@ -18,7 +18,7 @@
 #include <cstring> 
 
 #include "predicate.h"
-#include "page.h"
+// #include "page.h"
 #include "version.h"
 #include "client.h"
 
@@ -181,6 +181,8 @@ class Tuple::Iterator::EmptyIterator : public Tuple::Iterator {
 
 	inline bool End() const override {return true;}
 };
+
+class Page;
 
 class PageIterator: public Tuple::Iterator {
 public:
