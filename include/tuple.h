@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-13 14:55:22
+   @Last_Modified_At:   2017-01-13 15:04:50
    @Last_Modified_By:   RUAN0007
 
 */
@@ -160,6 +160,8 @@ public:
 		virtual bool End() const = 0;
 
 		virtual void Reset() = 0;
+
+		virtual ~Iterator(){}
 
 		static Iterator* GetEmptyIterator();
 
