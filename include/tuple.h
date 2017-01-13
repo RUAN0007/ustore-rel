@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-13 10:18:23
+   @Last_Modified_At:   2017-01-13 13:35:47
    @Last_Modified_By:   RUAN0007
 
 */
@@ -13,12 +13,16 @@
 #include "type.h"
 
 #include <vector>
+#include <map>
 #include <string> 
 #include <cstring> 
 
 #include "predicate.h"
-namespace ustore{
+#include "page.h"
+#include "version.h"
+#include "client.h"
 
+namespace ustore{
 namespace relation{
 
 //TupleDscp is a class to describe a tuple schema.
@@ -111,7 +115,7 @@ public:
 
 	inline bool IsSatisfy(const Predicate* predicate) const{
 		if(predicate == 0) return true;
-		
+
 		std::string field_name = predicate->GetFieldName();
 
 		Field* field = GetFieldByName(field_name);
@@ -139,12 +143,28 @@ public:
     	return !(lhs == rhs);
     }
 
-    class Iterator{
-    public:
-    	inline static Tuple::Iterator GetEmptyIterator(){
-    		return Tuple::Iterator();
-    	};
-    };
+
+   	class Iterator{
+
+	public:
+
+		//Get tuple pointed by current iterator
+		//return 0 if End()
+		virtual const Tuple* GetTuple() = 0;
+
+		//Advance the iterator pointer
+		//Return false if it is already the end or advance to reach the end
+		virtual bool Next() = 0;
+
+		//Return whether the iterator reaches the end
+		virtual bool End() const = 0;
+
+		static const Iterator* GetEmptyIterator();
+
+	private:
+		class EmptyIterator;
+};
+
 
 private:
 	unsigned char* back_store_;
@@ -152,6 +172,56 @@ private:
 	const TupleDscp* schema_;
 
 };
+
+class Tuple::Iterator::EmptyIterator : public Tuple::Iterator {
+
+	inline const Tuple* GetTuple()  override {return 0;}
+
+	inline bool Next() override {return false;}
+
+	inline bool End() const override {return true;}
+};
+
+class PageIterator: public Tuple::Iterator {
+public:
+	PageIterator(const std::string& relation_name, ClientService* client, Page* stored_page, 
+		const std::vector<RecordID>& tuple_pos, Predicate* predicate);
+
+	PageIterator(const std::string& relation_name, ClientService* client, Page* stored_page, 
+		const std::vector<RecordID>& tuple_pos);
+
+	~PageIterator();
+
+	const Tuple* GetTuple() override;
+
+	bool Next() override;
+
+	bool End() const override;
+
+private:
+
+	//Given a vector of RecordID, group the RecordID with same ustore version together
+	//Set the tuple_pos
+	void ReorganizeTuplePos(const std::vector<RecordID>& tuple_pos);
+
+	//Load the page whose position is pointed by curr_page_
+	void LoadPage();
+
+	std::string relation_name_;
+	ClientService* client_;
+	Page* stored_page_;
+	Predicate* predicate_;
+	std::map<version_t, std::vector<unsigned>> tuple_pages_;
+
+
+//The iterator pointing to the current page in stored_page
+	std::map<version_t, std::vector<unsigned>>::iterator curr_page_;
+
+//the iterator pointing to the current tuple in stored page
+	std::vector<unsigned>::iterator curr_tuple_index_;
+
+};
+
 }	
 }
 

@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 13:12:52
-   @Last_Modified_At:   2017-01-11 09:45:48
+   @Last_Modified_At:   2017-01-13 13:49:37
    @Last_Modified_By:   RUAN0007
 
 */
@@ -203,5 +203,93 @@ bool Tuple::SetFieldByName(string field_name, Field* new_field, std::string* msg
 	return SetFieldByIndex(field_position, new_field, msg);
 }
 
+const Tuple::Iterator* Tuple::Iterator::GetEmptyIterator() {
+	return new Tuple::Iterator::EmptyIterator();
+}
+
+PageIterator::PageIterator(const string& relation_name, ClientService* client, Page* stored_page, const std::vector<RecordID>& tuple_pos, Predicate* predicate):
+		relation_name_(relation_name),
+		client_(client),
+		stored_page_(stored_page),
+		predicate_(predicate){
+
+	this->ReorganizeTuplePos(tuple_pos);
+	LoadPage();
+}
+
+PageIterator::PageIterator(const string& relation_name, ClientService* client, Page* stored_page, const std::vector<RecordID>& tuple_pos):
+		PageIterator(relation_name, client, stored_page, tuple_pos, 0){
+}
+
+const Tuple* PageIterator::GetTuple() {
+	if (End()) return 0;
+
+
+	const Tuple* tuple = stored_page_->GetTuple(*curr_tuple_index_);
+
+	while(!tuple->IsSatisfy(predicate_) && Next()) {
+		tuple = stored_page_->GetTuple(*curr_tuple_index_);
+	}
+
+	if(End()){
+		return 0;
+	}else{
+		return tuple;
+	}
+}
+
+bool PageIterator::Next() {
+	if(End()) return false;
+
+	++curr_tuple_index_;
+
+	if(curr_tuple_index_ == curr_page_->second.end()) {
+		//pointer reaches the end of this page
+
+		//Advance the page iterator
+		++curr_page_;
+		if(curr_page_ != tuple_pages_.end()) { 
+			//If not the end of page, load the next page
+			LoadPage(); 
+		}else{
+			//already the end
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool PageIterator::End() const {
+	return curr_page_ == tuple_pages_.end();
+}
+
+void PageIterator::ReorganizeTuplePos(const vector<RecordID>& tuple_pos) {
+	for(const auto& tpos:tuple_pos) {
+		tuple_pages_[tpos.version].push_back(tpos.tuple_index);
+	}
+}
+
+void PageIterator::LoadPage() {
+	version_t version = curr_page_->first;
+
+	value_t* page_value = this->client_->SyncGet(this->relation_name_, version);
+	unsigned page_size = page_value->length();
+	
+	unsigned char* page_data = new unsigned char[page_size];
+
+	page_value->copy(reinterpret_cast<char*>(page_data), page_size);
+
+	stored_page_->SetData(page_data, page_size);	
+	// cout << "Page size: " << page->GetTupleNumber() << endl; 
+	delete page_value;
+
+	curr_tuple_index_ = curr_page_->second.begin();
+
+}
+
+PageIterator::~PageIterator(){}
+
 }//namespace ustore
 }//namepace relation
+
