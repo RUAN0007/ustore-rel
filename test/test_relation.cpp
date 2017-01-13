@@ -2,13 +2,15 @@
 
    @Author: RUAN0007
    @Date:   2017-01-11 09:22:13
-   @Last_Modified_At:   2017-01-11 16:35:30
+   @Last_Modified_At:   2017-01-13 16:01:39
    @Last_Modified_By:   RUAN0007
 
 */
 
 
 #include <gtest/gtest.h>
+
+#include <algorithm>    // std::find_if
 
 #include "relation.h"
 
@@ -486,4 +488,201 @@ t1 -> t21 -> t3 (branch1)
 
 	delete str_f1;
 	delete str_f2;
+	delete str_f3;
+}
+
+
+TEST_F(RelationTest, ScanDiffJoin) {
+
+	string msg;
+	CommitID commit_id;
+
+	Field* int_f1 = new IntField(1);
+	Field* int_f2 = new IntField(2);
+	Field* int_f3 = new IntField(3);
+
+	Field* str_f1 = new StrField("1");
+	Field* str_f2 = new StrField("2");
+	Field* str_f3 = new StrField("3");
+
+	Tuple t1(tuple_store, 0, schema);	
+	t1.SetFieldByIndex(0, int_f1, &msg);
+	t1.SetFieldByIndex(1, str_f1, &msg);
+
+	Tuple t21(tuple_store, 500, schema);	
+	t21.SetFieldByIndex(0, int_f2, &msg);
+	t21.SetFieldByIndex(1, str_f1, &msg);
+
+	Tuple t22(tuple_store, 1000, schema);	
+	t22.SetFieldByIndex(0, int_f2, &msg);
+	t22.SetFieldByIndex(1, str_f2, &msg);
+
+	Tuple t3(tuple_store, 1500, schema);	
+	t3.SetFieldByIndex(0, int_f3, &msg);
+	t3.SetFieldByIndex(1, str_f3, &msg);
+
+	ASSERT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
+	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+
+	string master_branch = "master";
+	string branch1 = "branch1";
+
+	EXPECT_TRUE(storage->Branch(master_branch, branch1, &msg));
+
+	ASSERT_TRUE(storage->InsertTuple(&t21, &msg)) << msg;
+	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+
+	ASSERT_TRUE(storage->InsertTuple(&t3, &msg)) << msg;
+	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+
+	ASSERT_TRUE(storage->Switch(master_branch, &msg));
+
+	ASSERT_TRUE(storage->InsertTuple(&t22, &msg)) << msg;
+	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+
+/*
+
+t1 -> t21 -> t3 (branch1)
+ | -> t22 (master)
+
+*/
+	storage->SetReadBuffer(read_page);
+
+//Scan branch1
+	Tuple::Iterator* it = storage->Scan(branch1, &msg);
+	unsigned tuple_count = 0;
+	vector<Tuple*> tuples = {&t1, &t21,&t3};
+	unsigned expected_count = tuples.size();
+
+	while(!it->End()){
+		const Tuple* ct = it->GetTuple();
+		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
+		ASSERT_NE(ft, tuples.end());
+		tuples.erase(ft);
+		++tuple_count;
+		it->Next();
+	}
+
+	ASSERT_EQ(tuple_count,expected_count); 
+	ASSERT_EQ(tuples.size(), 0);
+
+//Scan master branch 
+	it = storage->Scan(master_branch, &msg);
+	tuples = {&t1, &t22};
+	expected_count = tuples.size();
+	tuple_count = 0;
+
+	while(!it->End()){
+		const Tuple* ct = it->GetTuple();
+		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
+		ASSERT_NE(ft, tuples.end());
+		tuples.erase(ft);
+		++tuple_count;
+		it->Next();
+	}
+
+	ASSERT_EQ(tuple_count,expected_count); 
+	ASSERT_EQ(tuples.size(), 0);
+
+//Diff branch1 - master
+
+	it = storage->Diff(branch1, master_branch, &msg);
+	tuples = {&t3};
+	expected_count = tuples.size();
+	tuple_count = 0;
+
+	while(!it->End()){
+		const Tuple* ct = it->GetTuple();
+		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
+		ASSERT_NE(ft, tuples.end());
+		tuples.erase(ft);
+		++tuple_count;
+		it->Next();
+	}
+
+	ASSERT_EQ(tuple_count,expected_count); 
+	ASSERT_EQ(tuples.size(), 0);
+
+//Diff master - branch1
+	it = storage->Diff(master_branch,branch1, &msg);
+	tuples = {};
+	expected_count = tuples.size();
+	tuple_count = 0;
+
+	while(!it->End()){
+		const Tuple* ct = it->GetTuple();
+		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
+		ASSERT_NE(ft, tuples.end());
+		tuples.erase(ft);
+		++tuple_count;
+		it->Next();
+	}
+
+	ASSERT_EQ(tuple_count,expected_count); 
+	ASSERT_EQ(tuples.size(), 0);
+
+//Join branch1 and master
+	it = storage->Join(branch1,master_branch, 0, &msg);
+	tuples = {&t1,&t21};
+	expected_count = tuples.size();
+	tuple_count = 0;
+
+	while(!it->End()){
+		const Tuple* ct = it->GetTuple();
+		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
+		ASSERT_NE(ft, tuples.end());
+		tuples.erase(ft);
+		++tuple_count;
+		it->Next();
+	}
+
+	ASSERT_EQ(tuple_count,expected_count); 
+	ASSERT_EQ(tuples.size(), 0);
+
+
+//Join master and branch1 with predicate
+	Predicate p("StrF", kEQ, *str_f2);
+	it = storage->Join(master_branch,branch1, &p, &msg);
+	tuples = {&t22};
+	expected_count = tuples.size();
+	tuple_count = 0;
+
+	while(!it->End()){
+		const Tuple* ct = it->GetTuple();
+		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
+		ASSERT_NE(ft, tuples.end());
+		tuples.erase(ft);
+		++tuple_count;
+		it->Next();
+	}
+
+	ASSERT_EQ(tuple_count,expected_count); 
+	ASSERT_EQ(tuples.size(), 0);
+
+//Join master and branch1 without predicate
+	it = storage->Join(master_branch,branch1, 0, &msg);
+	tuples = {&t1, &t22};
+	expected_count = tuples.size();
+	tuple_count = 0;
+
+	while(!it->End()){
+		const Tuple* ct = it->GetTuple();
+		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
+		ASSERT_NE(ft, tuples.end());
+		tuples.erase(ft);
+		++tuple_count;
+		it->Next();
+	}
+
+	ASSERT_EQ(tuple_count,expected_count); 
+	ASSERT_EQ(tuples.size(), 0);
+	delete it;
+
+	delete int_f1;
+	delete int_f2;
+	delete int_f3;
+
+	delete str_f1;
+	delete str_f2;
+	delete str_f3;
 }
