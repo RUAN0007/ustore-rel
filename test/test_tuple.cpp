@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 19:45:52
-   @Last_Modified_At:   2017-01-11 09:47:29
+   @Last_Modified_At:   2017-01-13 10:36:50
    @Last_Modified_By:   RUAN0007
 
 */
@@ -184,20 +184,20 @@ TEST(Tuple, Predicate) {
 	t.SetFieldByName("4Int", int4, msg);
 
 	Predicate p1("1Int",  kLESS, IntField(1000));	
-	EXPECT_TRUE(t.IsSatisfy(p1));
+	EXPECT_TRUE(t.IsSatisfy(&p1));
 
 
 	Predicate p2("4Int",  kGREATER,  IntField(0));	
-	EXPECT_FALSE(t.IsSatisfy(p2));
+	EXPECT_FALSE(t.IsSatisfy(&p2));
 
 	Predicate p3("2Str",  kEQ,  StrField("Str2"));	
-	EXPECT_TRUE(t.IsSatisfy(p3));
+	EXPECT_TRUE(t.IsSatisfy(&p3));
 
 	Predicate p4("3Str",  kEQ,  StrField("Str22"));	
-	EXPECT_FALSE(t.IsSatisfy(p4));
+	EXPECT_FALSE(t.IsSatisfy(&p4));
 
 	Predicate p5("5Str",  kEQ,  StrField("Str22"));	
-	EXPECT_FALSE(t.IsSatisfy(p5));
+	EXPECT_FALSE(t.IsSatisfy(&p5));
 
 
 	delete int1; 
