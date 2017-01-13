@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 13:12:52
-   @Last_Modified_At:   2017-01-13 13:49:37
+   @Last_Modified_At:   2017-01-13 13:57:00
    @Last_Modified_By:   RUAN0007
 
 */
@@ -203,7 +203,7 @@ bool Tuple::SetFieldByName(string field_name, Field* new_field, std::string* msg
 	return SetFieldByIndex(field_position, new_field, msg);
 }
 
-const Tuple::Iterator* Tuple::Iterator::GetEmptyIterator() {
+Tuple::Iterator* Tuple::Iterator::GetEmptyIterator() {
 	return new Tuple::Iterator::EmptyIterator();
 }
 

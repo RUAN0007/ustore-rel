@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-06 12:24:20
-   @Last_Modified_At:   2017-01-13 13:35:47
+   @Last_Modified_At:   2017-01-13 13:56:49
    @Last_Modified_By:   RUAN0007
 
 */
@@ -159,7 +159,7 @@ public:
 		//Return whether the iterator reaches the end
 		virtual bool End() const = 0;
 
-		static const Iterator* GetEmptyIterator();
+		static Iterator* GetEmptyIterator();
 
 	private:
 		class EmptyIterator;
