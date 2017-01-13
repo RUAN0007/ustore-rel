@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-09 18:49:59
-   @Last_Modified_At:   2017-01-10 19:36:21
+   @Last_Modified_At:   2017-01-13 16:49:38
    @Last_Modified_By:   RUAN0007
 
 */
@@ -23,12 +23,12 @@ namespace relation{
 typedef version_t CommitID;
 
 //RecordID uniquely identifies a tuple's location in Ustore.
-typedef struct {
+typedef struct RecordID {
 	version_t version; //the version_t of the page that contains this tuple
 	unsigned tuple_index; // the tuple's index in this page, starting with 0. 
 } RecordID;
 
-typedef struct {
+typedef struct CommitRecord{
 
 	// Commit(CommitID init_id, version_t init_start, version_t init_end){
 	// 	id = init_id;
@@ -45,9 +45,9 @@ typedef struct {
 	//mapping pairs of tuple bit position to tuple's location in Ustore
 	std::map<unsigned, RecordID> tuple_positions;
     boost::dynamic_bitset<> tuple_presence; //Bitmap to indicate the tuple's presence in this commit
-} Commit;
+} CommitRecord;
 
-typedef struct Branch{
+typedef struct BranchRecord{
 	std::string branch_name;// this branch name
 	std::string base_branch; // the base branch from which this branch originates
 
@@ -59,7 +59,7 @@ typedef struct Branch{
 	void new_commit(CommitID commit_id){
 		commit_ids.push_back(commit_id);
 	}
-} Branch;
+} BranchRecord;
 
 }
 }

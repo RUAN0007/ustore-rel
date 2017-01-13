@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-10 09:16:56
-   @Last_Modified_At:   2017-01-13 15:21:44
+   @Last_Modified_At:   2017-01-13 16:52:44
    @Last_Modified_By:   RUAN0007
 
 */
@@ -26,7 +26,7 @@ namespace relation{
 
 UstoreHeapStorage::UstoreHeapStorage(const string& relation_name, const TupleDscp& schema, ClientService* client, Page* commited_page):
 	relation_name_(relation_name), schema_(schema), client_(client),commited_buffer_(commited_page) {
-		ustore::relation::Commit base_commit;
+		CommitRecord base_commit;
 
 		base_commit.id = NULL_VERSION;
 		base_commit.ustore_version = NULL_VERSION;
@@ -37,7 +37,7 @@ UstoreHeapStorage::UstoreHeapStorage(const string& relation_name, const TupleDsc
 
 		this->commit_info_[base_commit_id] = base_commit;
 
-		ustore::relation::Branch master_branch;
+		BranchRecord master_branch;
 
 		string master_branch_name = "master";
 		master_branch.branch_name = master_branch_name;
@@ -76,7 +76,7 @@ vector<string> UstoreHeapStorage::GetAllBranchName() const {
 	return branch_names;
 }
 
-ustore::relation::Branch UstoreHeapStorage::GetCurrentBranchInfo() const {
+BranchRecord UstoreHeapStorage::GetCurrentBranchInfo() const {
 	auto current_branch_info_it = this->branches_info_.find(this->current_branch_name_);
 	return current_branch_info_it->second;
 }
@@ -122,7 +122,7 @@ Tuple::Iterator* UstoreHeapStorage::Scan(const std::string& branch_name, std::st
 	}
 
 	CommitID base_branch_last_commitID = branch_info_it->second.commit_ids.back();
-	ustore::relation::Commit commit_record = this->commit_info_[base_branch_last_commitID];
+	CommitRecord commit_record = this->commit_info_[base_branch_last_commitID];
 
 	vector<RecordID> record_ids = this->GetTupleRecords(commit_record.tuple_presence, commit_record.tuple_positions);
 
@@ -138,8 +138,8 @@ Tuple::Iterator* UstoreHeapStorage::Diff(const std::string& branch_name1, const 
 		return Tuple::Iterator::GetEmptyIterator();
 	}
 
-	CommitID branch1_last_commitID = branch_info_it->second.commit_ids.back();
-	ustore::relation::Commit branch1_commit = this->commit_info_[branch1_last_commitID];
+	CommitID Branch_last_commitID = branch_info_it->second.commit_ids.back();
+	CommitRecord Branch_commit = this->commit_info_[Branch_last_commitID];
 
 	branch_info_it = this->branches_info_.find(branch_name2); 
 	if(branch_info_it == this->branches_info_.end()) {
@@ -148,26 +148,26 @@ Tuple::Iterator* UstoreHeapStorage::Diff(const std::string& branch_name1, const 
 	}
 
 	CommitID branch2_last_commitID = branch_info_it->second.commit_ids.back();
-	ustore::relation::Commit branch2_commit = this->commit_info_[branch2_last_commitID];
+	CommitRecord branch2_commit = this->commit_info_[branch2_last_commitID];
 
 //Retrieve the bitmap for the last commit of two branches and perform differencing
 
 	//Resize to be the same length
-	size_t b1_size = branch1_commit.tuple_presence.size();
+	size_t b1_size = Branch_commit.tuple_presence.size();
 	size_t b2_size = branch2_commit.tuple_presence.size();
 
 	if(b1_size > b2_size) {
 		branch2_commit.tuple_presence.resize(b1_size, 0);
 	}else{
-		branch1_commit.tuple_presence.resize(b2_size, 0);
+		Branch_commit.tuple_presence.resize(b2_size, 0);
 	}
 
-	dynamic_bitset<> tuple_presence = branch1_commit.tuple_presence - branch2_commit.tuple_presence;
+	dynamic_bitset<> tuple_presence = Branch_commit.tuple_presence - branch2_commit.tuple_presence;
 
-//Retrieve the tuple record for branch1
-	map<unsigned, RecordID> branch1_tuple_pos = branch1_commit.tuple_positions;
+//Retrieve the tuple record for Branch
+	map<unsigned, RecordID> Branch_tuple_pos = Branch_commit.tuple_positions;
 
-	vector<RecordID> record_ids = this->GetTupleRecords(tuple_presence, branch1_tuple_pos);
+	vector<RecordID> record_ids = this->GetTupleRecords(tuple_presence, Branch_tuple_pos);
 
 	return new PageIterator(this->relation_name_, this->client_, this->read_page_, record_ids); 
 }
@@ -181,8 +181,8 @@ Tuple::Iterator* UstoreHeapStorage::Join(const std::string& branch_name1, const 
 		return Tuple::Iterator::GetEmptyIterator();
 	}
 
-	CommitID branch1_last_commitID = branch_info_it->second.commit_ids.back();
-	ustore::relation::Commit branch1_commit = this->commit_info_[branch1_last_commitID];
+	CommitID Branch_last_commitID = branch_info_it->second.commit_ids.back();
+	CommitRecord Branch_commit = this->commit_info_[Branch_last_commitID];
 
 	branch_info_it = this->branches_info_.find(branch_name2); 
 	if(branch_info_it == this->branches_info_.end()) {
@@ -191,24 +191,24 @@ Tuple::Iterator* UstoreHeapStorage::Join(const std::string& branch_name1, const 
 	}
 
 	CommitID branch2_last_commitID = branch_info_it->second.commit_ids.back();
-	ustore::relation::Commit branch2_commit = this->commit_info_[branch2_last_commitID];
+	CommitRecord branch2_commit = this->commit_info_[branch2_last_commitID];
 
 	//Resize to be the same length
-	size_t b1_size = branch1_commit.tuple_presence.size();
+	size_t b1_size = Branch_commit.tuple_presence.size();
 	size_t b2_size = branch2_commit.tuple_presence.size();
 
 	if(b1_size > b2_size) {
 		branch2_commit.tuple_presence.resize(b1_size, 0);
 	}else{
-		branch1_commit.tuple_presence.resize(b2_size, 0);
+		Branch_commit.tuple_presence.resize(b2_size, 0);
 	}
 //Retrieve the bitmap for the last commit of two branches and perform bitwise AND
-	dynamic_bitset<> tuple_presence = branch1_commit.tuple_presence & branch2_commit.tuple_presence;
+	dynamic_bitset<> tuple_presence = Branch_commit.tuple_presence & branch2_commit.tuple_presence;
 
-//Retrieve the tuple record for branch1
-	map<unsigned, RecordID> branch1_tuple_pos = branch1_commit.tuple_positions;
+//Retrieve the tuple record for Branch
+	map<unsigned, RecordID> Branch_tuple_pos = Branch_commit.tuple_positions;
 
-	vector<RecordID> record_ids = this->GetTupleRecords(tuple_presence, branch1_tuple_pos);
+	vector<RecordID> record_ids = this->GetTupleRecords(tuple_presence, Branch_tuple_pos);
 
 	return new PageIterator(this->relation_name_, this->client_, this->read_page_, record_ids,predicate); 
 }
@@ -261,7 +261,7 @@ Tuple* UstoreHeapStorage::GetTuple(const string &branch_name, const Field* pk, P
 
 	CommitID branch_commit_id = branch_info_it->second.commit_ids.back();
 
-	ustore::relation::Commit branch_last_commit = this->commit_info_[branch_commit_id];
+	CommitRecord branch_last_commit = this->commit_info_[branch_commit_id];
 
 	dynamic_bitset<> tuple_presence = branch_last_commit.tuple_presence;
 
@@ -302,7 +302,7 @@ bool UstoreHeapStorage::InsertTuple(const Tuple* tuple, std::string* msg){
 	}
 
 	CommitID branch_commit_id = GetCurrentBranchInfo().commit_ids.back();
-	ustore::relation::Commit branch_last_commit = this->commit_info_[branch_commit_id];
+	CommitRecord branch_last_commit = this->commit_info_[branch_commit_id];
 
 	dynamic_bitset<> tuple_presence = branch_last_commit.tuple_presence;
 	// cout << "Presence: " << tuple_presence << endl;
@@ -371,7 +371,7 @@ bool UstoreHeapStorage::IsActiveTuple(unsigned bit_pos) const{
 bool UstoreHeapStorage::ExistInPreCommit(unsigned bit_pos) const {
 
 	CommitID branch_commit_id = GetCurrentBranchInfo().commit_ids.back();
-	ustore::relation::Commit branch_last_commit = this->commit_info_.find(branch_commit_id)->second;
+	CommitRecord branch_last_commit = this->commit_info_.find(branch_commit_id)->second;
 
 	dynamic_bitset<> tuple_presence = branch_last_commit.tuple_presence;
 
@@ -412,9 +412,9 @@ bool UstoreHeapStorage::Merge(CommitID* commit_id, const std::string& branch_nam
 		return false;
 	}
 
-	CommitID branch1_last_commitID = branch_info_it->second.commit_ids.back();
-	ustore::relation::Commit branch1_commit = this->commit_info_[branch1_last_commitID];
-	map<unsigned, RecordID> branch1_tuple_pos = branch1_commit.tuple_positions;	
+	CommitID Branch_last_commitID = branch_info_it->second.commit_ids.back();
+	CommitRecord Branch_commit = this->commit_info_[Branch_last_commitID];
+	map<unsigned, RecordID> Branch_tuple_pos = Branch_commit.tuple_positions;	
 
 	branch_info_it = this->branches_info_.find(branch_name2); 
 	if(branch_info_it == this->branches_info_.end()) {
@@ -423,33 +423,33 @@ bool UstoreHeapStorage::Merge(CommitID* commit_id, const std::string& branch_nam
 	}
 
 	CommitID branch2_last_commitID = branch_info_it->second.commit_ids.back();
-	ustore::relation::Commit branch2_commit = this->commit_info_[branch2_last_commitID];
+	CommitRecord branch2_commit = this->commit_info_[branch2_last_commitID];
 	map<unsigned, RecordID> branch2_tuple_pos = branch2_commit.tuple_positions;	
 
 	//Resize to be the same length
-	size_t b1_size = branch1_commit.tuple_presence.size();
+	size_t b1_size = Branch_commit.tuple_presence.size();
 	size_t b2_size = branch2_commit.tuple_presence.size();
 
 	if(b1_size > b2_size) {
 		branch2_commit.tuple_presence.resize(b1_size, 0);
 	}else{
-		branch1_commit.tuple_presence.resize(b2_size, 0);
+		Branch_commit.tuple_presence.resize(b2_size, 0);
 	}
 	//Perform the OR operation on bitmap
-	dynamic_bitset<> merged_tuple_presence = branch1_commit.tuple_presence | branch2_commit.tuple_presence;
+	dynamic_bitset<> merged_tuple_presence = Branch_commit.tuple_presence | branch2_commit.tuple_presence;
 
 	map<unsigned, RecordID> merged_tuple_pos;
 
 	dynamic_bitset<>::size_type set_index = merged_tuple_presence.find_first();
 
 	//Combine RecordID from commits of both branches.
-	//Commit from branch1 takes the precedence. 
+	//Commit from Branch takes the precedence. 
 
 	while(set_index != dynamic_bitset<>::npos) {
 
-		auto recordID_it = branch1_tuple_pos.find(set_index);
+		auto recordID_it = Branch_tuple_pos.find(set_index);
 
-		if(recordID_it != branch1_tuple_pos.end()){
+		if(recordID_it != Branch_tuple_pos.end()){
 			merged_tuple_pos[set_index] = recordID_it->second;
 		}else{
 			recordID_it = branch2_tuple_pos.find(set_index);
@@ -465,12 +465,12 @@ bool UstoreHeapStorage::Merge(CommitID* commit_id, const std::string& branch_nam
 		set_index = merged_tuple_presence.find_next(set_index);
 	}
 
-	version_t branch1_version = branch1_commit.ustore_version;
+	version_t Branch_version = Branch_commit.ustore_version;
 	version_t branch2_version = branch2_commit.ustore_version;
 	
-	version_t merge_version = this->client_->SyncMerge(this->relation_name_, branch1_version, branch2_version, NULL_VALUE);
+	version_t merge_version = this->client_->SyncMerge(this->relation_name_, Branch_version, branch2_version, NULL_VALUE);
 
-	ustore::relation::Commit merge_commit;
+	CommitRecord merge_commit;
 
 	merge_commit.id = merge_version;
 	merge_commit.ustore_version = merge_version;
@@ -506,7 +506,7 @@ bool UstoreHeapStorage::Commit(CommitID* commit_id, std::string* msg) {
 //SyncPut the page to ustore 
 	value_t ustore_value = value_t(reinterpret_cast<const char*>(commited_buffer_->GetRawData()), commited_buffer_->GetPageSize());
 
-	ustore::relation::Commit last_commit = this->commit_info_[last_commit_id];
+	CommitRecord last_commit = this->commit_info_[last_commit_id];
 
 	version_t ustore_version = this->client_->SyncPut(this->relation_name_, last_commit.ustore_version, ustore_value);
 
@@ -544,7 +544,7 @@ bool UstoreHeapStorage::Commit(CommitID* commit_id, std::string* msg) {
 	removed_tuple_pos_.clear();	
 
 //Create new commit
-	ustore::relation::Commit new_commit;
+	CommitRecord new_commit;
 	new_commit.id = ustore_version;
 	new_commit.ustore_version = ustore_version;
 	new_commit.tuple_positions = new_tuple_pos;
@@ -592,7 +592,7 @@ bool UstoreHeapStorage::Checkout(const CommitID& commit_id, const std::string& b
 	}
 
 //Create the new branch
-	ustore::relation::Branch new_branch;
+	BranchRecord new_branch;
 	new_branch.branch_name = new_branch_name;
 	new_branch.base_branch = base_branch_name;
 	new_branch.new_commit(commit_id);

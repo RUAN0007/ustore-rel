@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-09 19:25:14
-   @Last_Modified_At:   2017-01-13 14:34:13
+   @Last_Modified_At:   2017-01-13 16:50:33
    @Last_Modified_By:   RUAN0007
 
 */
@@ -99,12 +99,12 @@ public:
 	bool Commit(CommitID* commit_id, std::string* msg);
 
 /*
-	Merge branch1 and branch2 and make a commit. This commit shall fall into branch1. 
-	If tuples active in both branch1 and branch2, branch1's version takes the precedence.  
+	Merge Branch and branch2 and make a commit. This commit shall fall into Branch. 
+	If tuples active in both Branch and branch2, Branch's version takes the precedence.  
 
 	Args:
 		commit_ids: the pointer to hold commitID for this commit
-		branch_name1: the name of branch1
+		branch_name1: the name of Branch
 		branch_name2: the name of branch2	
 		msg: a string reference that hold any returned message. 
 
@@ -165,10 +165,10 @@ public:
 	Tuple::Iterator* Scan(const std::string& branch_name, std::string* msg);
 
 /*
-	Scan all the active tuples in a branch1 BUT not in branch2
+	Scan all the active tuples in a Branch BUT not in branch2
 
 	Args:
-		branch_name1: the name of branch1
+		branch_name1: the name of Branch
 		branch_name2: the name of branch2
 		msg: a pointer of a string to hold any returned message
 
@@ -179,12 +179,12 @@ public:
 	Tuple::Iterator* Diff(const std::string& branch_name1, const std::string branch_name2, std::string* msg);
 
 /*
-	Scan all the active tuples in both branch1 and branch2 while in branch1 satisfying the predicate . 
+	Scan all the active tuples in both Branch and branch2 while in Branch satisfying the predicate . 
 
 	Args:
-		branch_name1: the name of branch1
+		branch_name1: the name of Branch
 		branch_name2: the name of branch2
-		condition: the predicate to filter for valid tuples in branch1
+		condition: the predicate to filter for valid tuples in Branch
 		msg: a pointer of a string to hold any returned message
 
 	Return:
@@ -223,7 +223,7 @@ public:
 	Return:
 		a Branch struct for current branch
 */
-	ustore::relation::Branch GetCurrentBranchInfo() const;
+	BranchRecord GetCurrentBranchInfo() const;
 
 
 
@@ -310,16 +310,14 @@ Return:
 	UstoreHeapStorage& operator=(const UstoreHeapStorage&) = delete; //Prevent assignment and copy
     UstoreHeapStorage(const UstoreHeapStorage&) = delete;
 
-
-
 //About branch info
 	//key: branch name
 	//value: Branch struct
-	std::map<std::string, ustore::relation::Branch> branches_info_; 
+	std::map<std::string, BranchRecord> branches_info_; 
 	std::string current_branch_name_;
 
 //About Commit Info
-	std::map<CommitID, ustore::relation::Commit> commit_info_;
+	std::map<CommitID, CommitRecord> commit_info_;
 
 //Read Buffer Pages
 	Page* read_page_; 
