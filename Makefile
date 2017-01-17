@@ -47,3 +47,5 @@ clean:
 	rm -rf $(BUILD_DIR)/*
 
 .PHONY: clean dir
+
+.DEFAULT_GOAL = all
