@@ -32,16 +32,6 @@ namespace relation{
 class Field{
 public:
 
-inline bool Compare(const Field* f) const{
-	std::size_t self_hash = this->hash();
-	std::size_t f_hash = f->hash();
-
-	if(self_hash < f_hash) return -1;
-	if(self_hash == f_hash) return 0;
-	if(self_hash > f_hash) return 1;
-	return 0;
-}
-
 virtual const Type* GetType() const = 0;
 virtual bool IsSatisified(ComparisonOp op, const Field* field) const = 0;
 virtual std::string to_str() const = 0;
@@ -53,9 +43,9 @@ inline virtual ~Field(){};
 
 //a customized functor to compare field pointer
 //used for STL container
-struct field_less {
+struct FieldLess {
     bool operator()(const Field* lhs, const Field* rhs) {
-        return lhs->Compare(rhs) < 0;
+        return lhs->hash() < rhs->hash();
     }
 };
 
