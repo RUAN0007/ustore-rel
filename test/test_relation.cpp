@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-11 09:22:13
-   @Last_Modified_At:   2017-01-13 16:01:39
+   @Last_Modified_At:   2017-01-17 15:06:37
    @Last_Modified_By:   RUAN0007
 
 */
@@ -16,18 +16,32 @@
 
 #include "client.h"
 #include "type.h"
-#include "types.h"
 #include "field.h"
 #include "tuple.h"
 #include "page.h"
 #include "predicate.h"
-#include "version.h"
 
 #include "debug.h"
 
 using namespace std;
 using namespace ustore::relation;
 using namespace ustore;
+
+string random_string( size_t length )
+{
+    auto randchar = []() -> char
+    {
+        const char charset[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+        const size_t max_index = (sizeof(charset) - 1);
+        return charset[ rand() % max_index ];
+    };
+    string str(length,0);
+    generate_n( str.begin(), length, randchar );
+    return str;
+}
 
 class RelationTest : public ::testing::Test {
  protected:
@@ -41,6 +55,7 @@ class RelationTest : public ::testing::Test {
   	names.push_back("IntF");
   	names.push_back("StrF");
 
+  	relation_name = random_string(5);
   	schema = new TupleDscp(relation_name, types, names);
 
 
@@ -62,7 +77,7 @@ class RelationTest : public ::testing::Test {
   	delete tuple_store;
   }
 
-  string relation_name = "Relation";
+  string relation_name;
   ClientService client;
   UstoreHeapStorage* storage;
   Page *read_page;
@@ -73,7 +88,6 @@ class RelationTest : public ::testing::Test {
 
 
 TEST_F(RelationTest, Basic) {
-
 	Tuple t1(tuple_store, 0, schema);	
 	Field* int_f1 = new IntField(1);
 	Field* str_f1 = new StrField("1");
@@ -368,6 +382,7 @@ TEST_F(RelationTest, OperationAfterRemove) {
 
 TEST_F(RelationTest, Branch) {
 
+	cout << "Relation Name: " << relation_name << endl;
 	string msg;
 	CommitID commit_id;
 
@@ -494,6 +509,7 @@ t1 -> t21 -> t3 (branch1)
 
 TEST_F(RelationTest, ScanDiffJoin) {
 
+	cout << "Relation Name: " << relation_name << endl;
 	string msg;
 	CommitID commit_id;
 
