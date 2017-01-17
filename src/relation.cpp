@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-10 09:16:56
-   @Last_Modified_At:   2017-01-13 17:01:11
+   @Last_Modified_At:   2017-01-17 14:49:04
    @Last_Modified_By:   RUAN0007
 
 */
@@ -52,7 +52,7 @@ UstoreHeapStorage::UstoreHeapStorage(const string& relation_name, const TupleDsc
 UstoreHeapStorage::~UstoreHeapStorage() {
 	//free all hold fields
 
-	for(Field* pk: this->pks_) {
+	for(const Field* pk: this->pks_) {
 		delete pk;
 	}
 }
@@ -236,13 +236,17 @@ vector<RecordID> UstoreHeapStorage::GetTupleRecords(const dynamic_bitset<>& tupl
 }
 
 int UstoreHeapStorage::pk2index(const Field* f) const{
-	auto pk_it = find_if(pks_.begin(), pks_.end(), [f](const Field* pk_ptr){  
-							return pk_ptr->equal(f);
-					});
+	auto pk_it = pk2pos_.find(f);	
+	if(pk_it == pk2pos_.end()) return -1;
+	return (*pk_it).second;
+	// auto pk_it = find_if(pks_.begin(), pks_.end(), [f](const Field* pk_ptr){  
+	// 						return pk_ptr->equal(f);
+	// 				});
 
-	if(pk_it == pks_.end()) return -1;
+	// if(pk_it == pks_.end()) return -1;
 
-	return distance(pks_.begin(), pk_it);
+	// return distance(pks_.begin(), pk_it);
+
 }
 
 Tuple* UstoreHeapStorage::GetTuple(const string &branch_name, const Field* pk, Page* page, string *msg){
@@ -298,8 +302,10 @@ bool UstoreHeapStorage::InsertTuple(const Tuple* tuple, std::string* msg){
 
 	if(bit_pos == -1) {
 		//This tuple has not been inserted in any of a branch. 
-		bit_pos = this->pks_.size();
+
+		bit_pos = this->pks_.size();//bit_pos for this newly inserted tuples
 		this->pks_.push_back(pk);
+		this->pk2pos_[pk] = bit_pos;
 	}
 
 	CommitID branch_commit_id = GetCurrentBranchInfo().commit_ids.back();

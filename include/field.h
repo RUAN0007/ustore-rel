@@ -44,7 +44,7 @@ inline virtual ~Field(){};
 //a customized functor to compare field pointer
 //used for STL container
 struct FieldLess {
-    bool operator()(const Field* lhs, const Field* rhs) {
+    bool operator()(const Field* lhs, const Field* rhs) const{
         return lhs->hash() < rhs->hash();
     }
 };

@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-09 19:25:14
-   @Last_Modified_At:   2017-01-13 16:50:33
+   @Last_Modified_At:   2017-01-17 14:31:56
    @Last_Modified_By:   RUAN0007
 
 */
@@ -344,11 +344,11 @@ Return:
 
 //There is one-to-one mapping between primary key field to global bit postion. The tuple's global bit position is determined by its primary key. 
 
-	//primary key to global bit position
-	// std::map<Field*, unsigned> pk2pos_;
+	// primary key to global bit position
+	std::map<const Field*, unsigned, FieldLess> pk2pos_;
 
 	//a vector of primary key occurs in any of branch
-	std::vector<Field*> pks_;
+	std::vector<const Field*> pks_;
 
 	std::string relation_name_;
 
