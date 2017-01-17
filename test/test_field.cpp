@@ -8,6 +8,7 @@
 
 #include "field.h"
 
+#include <map>
 #include <sstream>
 
 using namespace std;
@@ -163,4 +164,25 @@ TEST(FIELD, EQUAL) {
 	delete f3;
 	delete f4;
 	delete f5;
+}
+
+TEST(FIELD, STL) {
+
+	Field *f1 = new IntField(1);
+	Field *f2 = new IntField(1);
+	Field *f3 = new IntField(2);
+
+	map<const Field*, unsigned, FieldLess> fmap;
+
+	fmap[f1] = 1;
+	fmap[f3] = 2;
+
+	auto ff1 = fmap.find(f2);	
+	ASSERT_NE(ff1, fmap.end());
+	ASSERT_EQ((*ff1).second, 1);
+	// cout << fmap[f2] << endl;
+
+	delete f1;
+	delete f2;
+	delete f3;
 }
