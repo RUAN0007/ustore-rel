@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-10 09:16:56
-   @Last_Modified_At:   2017-01-17 14:49:04
+   @Last_Modified_At:   2017-01-17 15:08:09
    @Last_Modified_By:   RUAN0007
 
 */
@@ -12,7 +12,6 @@
 #include "relation.h"
 
 #include "debug.h"
-#include "version.h"
 #include "types.h"
 
 #include <algorithm>    // std::find_if
