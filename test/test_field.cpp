@@ -168,9 +168,9 @@ TEST(FIELD, EQUAL) {
 
 TEST(FIELD, STL) {
 
-	Field *f1 = new IntField(1);
-	Field *f2 = new IntField(1);
-	Field *f3 = new IntField(2);
+	const Field *f1 = new IntField(1);
+	const Field *f2 = new IntField(1);
+	const Field *f3 = new IntField(2);
 
 	map<const Field*, unsigned, FieldLess> fmap;
 
