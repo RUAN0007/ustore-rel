@@ -31,15 +31,33 @@ namespace relation{
 
 class Field{
 public:
+
+inline bool Compare(const Field* f) const{
+	std::size_t self_hash = this->hash();
+	std::size_t f_hash = f->hash();
+
+	if(self_hash < f_hash) return -1;
+	if(self_hash == f_hash) return 0;
+	if(self_hash > f_hash) return 1;
+	return 0;
+}
+
 virtual const Type* GetType() const = 0;
-
 virtual bool IsSatisified(ComparisonOp op, const Field* field) const = 0;
-
 virtual std::string to_str() const = 0;
 virtual Field* clone() const = 0;
 virtual bool equal(const Field* f) const = 0;
+virtual std::size_t hash() const = 0;
 inline virtual ~Field(){};
 }; //class Field
+
+//a customized functor to compare field pointer
+//used for STL container
+struct field_less {
+    bool operator()(const Field* lhs, const Field* rhs) {
+        return lhs->Compare(rhs) < 0;
+    }
+};
 
 class IntField:public Field{
 
@@ -79,6 +97,10 @@ inline virtual const Type* GetType() const override{
 	return IntType::GetInstance();
 }
 
+inline virtual std::size_t hash() const override {
+	return static_cast<std::size_t>(this->value());
+}
+
 friend std::istream& operator>>(std::istream &in, IntField& int_field);
 
 friend std::ostream& operator<<(std::ostream &out, IntField int_field);
@@ -111,6 +133,10 @@ inline bool equal(const Field* f) const override {
 		return false;
 	}
 	return this->value() == str_f->value();
+}
+
+inline virtual std::size_t hash() const override {
+	return std::hash<std::string>()(this->value());
 }
 
 inline std::string to_str() const override{
