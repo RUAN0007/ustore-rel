@@ -2,16 +2,16 @@
 
    @Author: RUAN0007
    @Date:   2017-01-07 09:48:57
-   @Last_Modified_At:   2017-01-13 17:04:25
+   @Last_Modified_At:   2017-01-23 17:09:20
    @Last_Modified_By:   RUAN0007
 
 */
 
 
-#ifndef INCLUDE_PAGE_H
-#define INCLUDE_PAGE_H
+#ifndef INCLUDE_PAGE_H_
+#define INCLUDE_PAGE_H_
 
-#include "tuple.h"
+#include "./tuple.h"
 
 namespace ustore{
 namespace relation{
@@ -84,6 +84,6 @@ private:
 	unsigned char* buffer_;
 	
 };
-}
-}
-#endif
+}  // namespace relation
+}  // namespace ustore
+#endif  //  INCLUDE_PAGE_H_

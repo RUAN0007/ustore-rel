@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-10 09:16:56
-   @Last_Modified_At:   2017-01-17 15:08:09
+   @Last_Modified_At:   2017-01-23 17:30:46
    @Last_Modified_By:   RUAN0007
 
 */
@@ -129,7 +129,7 @@ Tuple::Iterator* UstoreHeapStorage::Scan(const std::string& branch_name, std::st
 	return new PageIterator(this->relation_name_, this->client_, this->read_page_, record_ids); 
 }
 
-Tuple::Iterator* UstoreHeapStorage::Diff(const std::string& branch_name1, const std::string branch_name2, std::string* msg){
+Tuple::Iterator* UstoreHeapStorage::Diff(const std::string& branch_name1, const std::string& branch_name2, std::string* msg){
 
 //Check for branch existence. 
 	auto branch_info_it = this->branches_info_.find(branch_name1); 
@@ -172,7 +172,7 @@ Tuple::Iterator* UstoreHeapStorage::Diff(const std::string& branch_name1, const 
 	return new PageIterator(this->relation_name_, this->client_, this->read_page_, record_ids); 
 }
 
-Tuple::Iterator* UstoreHeapStorage::Join(const std::string& branch_name1, const std::string branch_name2, const Predicate* predicate , std::string* msg){
+Tuple::Iterator* UstoreHeapStorage::Join(const std::string& branch_name1, const std::string& branch_name2, const Predicate* predicate , std::string* msg){
 
 //Check for branch existence. 
 	auto branch_info_it = this->branches_info_.find(branch_name1); 
