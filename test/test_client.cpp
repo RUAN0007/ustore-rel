@@ -2,20 +2,20 @@
 
    @Author: RUAN0007
    @Date:   2017-01-09 10:53:35
-   @Last_Modified_At:   2017-01-09 18:44:41
+   @Last_Modified_At:   2017-01-23 18:33:46
    @Last_Modified_By:   RUAN0007
 
 */
 
 #include <gtest/gtest.h>
 
-#include "client.h"
+#include "./client.h"
 
 using namespace ustore;
 using namespace std;
 
 class ClientTest : public ::testing::Test {
- protected:
+protected:
   virtual void SetUp() {
 
   	v1 = client.SyncPut("key", NULL_VERSION, "1");

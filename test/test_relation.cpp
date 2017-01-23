@@ -1,36 +1,58 @@
-/* 
+/*
 
    @Author: RUAN0007
    @Date:   2017-01-11 09:22:13
-   @Last_Modified_At:   2017-01-17 15:06:37
+   @Last_Modified_At:   2017-01-23 18:33:20
    @Last_Modified_By:   RUAN0007
 
 */
 
-
 #include <gtest/gtest.h>
 
-#include <algorithm>    // std::find_if
+#include <algorithm>    //  std::find_if
+#include  <string>
+#include  <vector>
 
-#include "relation.h"
+#include "./tuple.h"
+#include "./field.h"
+#include "./operator.h"
 
-#include "client.h"
-#include "type.h"
-#include "field.h"
-#include "tuple.h"
-#include "page.h"
-#include "predicate.h"
+#include "./debug.h"
+#include "./relation.h"
 
-#include "debug.h"
+#include "./client.h"
+#include "./type.h"
+#include "./page.h"
+#include "./predicate.h"
 
-using namespace std;
-using namespace ustore::relation;
-using namespace ustore;
 
-string random_string( size_t length )
-{
-    auto randchar = []() -> char
-    {
+using std::string;
+using std::vector;
+
+using ustore::relation::Type;
+using ustore::relation::IntType;
+using ustore::relation::StrType;
+
+using ustore::relation::TupleDscp;
+using ustore::relation::Tuple;
+using ustore::relation::Field;
+using ustore::relation::IntField;
+using ustore::relation::StrField;
+using ustore::relation::StrField;
+
+using ustore::relation::UstoreHeapStorage;
+using ustore::relation::Page;
+using ustore::relation::CommitID;
+using ustore::relation::CommitRecord;
+using ustore::relation::BranchRecord;
+
+using ustore::relation::Predicate;
+using ustore::relation::ComparisonOp;
+
+using ustore::ClientService;
+
+string random_string(size_t length ) {
+    auto randchar = []() -> char {
         const char charset[] =
         "0123456789"
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -38,402 +60,426 @@ string random_string( size_t length )
         const size_t max_index = (sizeof(charset) - 1);
         return charset[ rand() % max_index ];
     };
-    string str(length,0);
-    generate_n( str.begin(), length, randchar );
+    string str(length, 0);
+    generate_n(str.begin(), length, randchar);
     return str;
 }
 
 class RelationTest : public ::testing::Test {
  protected:
-  virtual void SetUp() {
+    virtual void SetUp() {
+        vector<const Type*> types;
+        types.push_back(IntType::GetInstance());
+        types.push_back(StrType::GetInstance());
 
-  	vector<const Type*> types;
-  	types.push_back(IntType::GetInstance());
-  	types.push_back(StrType::GetInstance());
+        vector<string> names;
+        names.push_back("IntF");
+        names.push_back("StrF");
 
-  	vector<string> names;
-  	names.push_back("IntF");
-  	names.push_back("StrF");
+        relation_name = random_string(5);
+        schema = new TupleDscp(relation_name, types, names);
 
-  	relation_name = random_string(5);
-  	schema = new TupleDscp(relation_name, types, names);
+        read_page = new Page(relation_name, schema, 4096);
 
+        write_page = new Page(relation_name, schema, 4096);
+        storage = new UstoreHeapStorage(
+                                         relation_name,
+                                         *schema, &client,
+                                         write_page);
 
-	read_page = new Page(relation_name, schema, 4096);
+        tuple_store = new unsigned char[4000];
 
-	write_page = new Page(relation_name, schema, 4096);
-	storage = new UstoreHeapStorage(relation_name, *schema, &client, write_page); 
+    //  storage->SetCommitBuffer(write_page);
+    }
 
-	tuple_store = new unsigned char[4000];
+    virtual void TearDown() {
+        delete schema;
+        delete storage;
+        delete read_page;
+        delete write_page;
+        delete tuple_store;
+    }
 
-	// storage->SetCommitBuffer(write_page);
-  }
-
-  virtual void TearDown() {
-  	delete schema;
-  	delete storage;
-  	delete read_page;
-  	delete write_page;
-  	delete tuple_store;
-  }
-
-  string relation_name;
-  ClientService client;
-  UstoreHeapStorage* storage;
-  Page *read_page;
-  Page *write_page;
-  TupleDscp *schema;
-  unsigned char* tuple_store;
+    string relation_name;
+    ClientService client;
+    UstoreHeapStorage* storage;
+    Page *read_page;
+    Page *write_page;
+    TupleDscp *schema;
+    unsigned char* tuple_store;
 };
 
-
 TEST_F(RelationTest, Basic) {
-	Tuple t1(tuple_store, 0, schema);	
-	Field* int_f1 = new IntField(1);
-	Field* str_f1 = new StrField("1");
-	t1.SetFieldByIndex(0, int_f1, 0);
-	t1.SetFieldByIndex(1, str_f1, 0);
+    Tuple t1(tuple_store, 0, schema);
 
-	Tuple t2(tuple_store, 500, schema);	
-	Field* int_f2 = new IntField(2);
-	Field* str_f2 = new StrField("2");
-	t2.SetFieldByIndex(0, int_f2, 0);
-	t2.SetFieldByIndex(1, str_f2, 0);
+    Field* int_f1 = new IntField(1);
+    Field* str_f1 = new StrField("1");
+    t1.SetFieldByIndex(0, int_f1, 0);
+    t1.SetFieldByIndex(1, str_f1, 0);
 
-	Field* int_f3 = new IntField(3);
-	Field* str_f3 = new StrField("3");
+    Tuple t2(tuple_store, 500, schema);
 
-	Tuple t32(tuple_store, 1000, schema);	
-	t32.SetFieldByIndex(0, int_f3, 0);
-	t32.SetFieldByIndex(1, str_f2, 0);
+    Field* int_f2 = new IntField(2);
+    Field* str_f2 = new StrField("2");
+    t2.SetFieldByIndex(0, int_f2, 0);
+    t2.SetFieldByIndex(1, str_f2, 0);
 
-	Tuple t23(tuple_store, 1500, schema);	
-	t23.SetFieldByIndex(0, int_f2, 0);
-	t23.SetFieldByIndex(1, str_f3, 0);
+    Field* int_f3 = new IntField(3);
+    Field* str_f3 = new StrField("3");
 
-	CommitID commit_id;
-	string msg;
+    Tuple t32(tuple_store, 1000, schema);
 
-	EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
-	EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    t32.SetFieldByIndex(0, int_f3, 0);
+    t32.SetFieldByIndex(1, str_f2, 0);
 
-	EXPECT_TRUE(storage->InsertTuple(&t2, &msg)) << msg;
-	EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    Tuple t23(tuple_store, 1500, schema);
 
-	Tuple *pt1 = storage->GetTuple("master", int_f1, read_page, &msg);
-	EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t1, *pt1);
-	delete pt1;
+    t23.SetFieldByIndex(0, int_f2, 0);
+    t23.SetFieldByIndex(1, str_f3, 0);
 
-	Tuple *pt2 = storage->GetTuple("master", int_f2, read_page, &msg);
-	EXPECT_NE(pt2, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t2, *pt2);
-	delete pt2;
+    CommitID commit_id;
+    string msg;
 
-//Retrieve a non-existent tuple
-	Tuple *pt3 = storage->GetTuple("master", int_f3, read_page, &msg);
-	EXPECT_EQ(pt3, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
+    EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
 
-//Remove a non-existent tuple
-	EXPECT_FALSE(storage->RemoveTuple(int_f3, &msg)) << msg;
+    EXPECT_TRUE(storage->InsertTuple(&t2, &msg)) << msg;
+    EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
 
-//Update a non-existent tuple
-	EXPECT_FALSE(storage->UpdateTuple(&t32, &msg)) << msg;
+    Tuple *pt1 = storage->GetTuple("master", int_f1, read_page, &msg);
+    EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t1, *pt1);
+    delete pt1;
 
-//Reinsert a tuple with same pk
-	EXPECT_FALSE(storage->InsertTuple(&t23, &msg)) << msg;
+    Tuple *pt2 = storage->GetTuple("master", int_f2, read_page, &msg);
+    EXPECT_NE(pt2, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t2, *pt2);
+    delete pt2;
 
-//Update a existent tuple and check for existence
-	EXPECT_TRUE(storage->UpdateTuple(&t23, &msg)) << msg;
+// Retrieve a non-existent tuple
+    Tuple *pt3 = storage->GetTuple("master", int_f3, read_page, &msg);
+    EXPECT_EQ(pt3, reinterpret_cast<Tuple*>(0)) << msg;
 
-	//Before Commit
-	Tuple *pt23 = storage->GetTuple("master", int_f2, read_page, &msg);
-	EXPECT_NE(pt23, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t2, *pt23);
-	delete pt23;
+// Remove a non-existent tuple
+    EXPECT_FALSE(storage->RemoveTuple(int_f3, &msg)) << msg;
 
-	EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+// Update a non-existent tuple
+    EXPECT_FALSE(storage->UpdateTuple(&t32, &msg)) << msg;
 
-	//After Commit
-	pt23 = storage->GetTuple("master", int_f2, read_page, &msg);
-	EXPECT_NE(pt23, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t23, *pt23);
-	delete pt23;
+// Reinsert a tuple with same pk
+    EXPECT_FALSE(storage->InsertTuple(&t23, &msg)) << msg;
 
-//An empty commit
-	EXPECT_FALSE(storage->Commit(&commit_id, &msg)) << msg;
+// Update a existent tuple and check for existence
+    EXPECT_TRUE(storage->UpdateTuple(&t23, &msg)) << msg;
 
-//Remove an existent tuple
-	EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
+    // Before Commit
+    Tuple *pt23 = storage->GetTuple("master", int_f2, read_page, &msg);
+    EXPECT_NE(pt23, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t2, *pt23);
+    delete pt23;
 
-	//Before commit
-	pt1 = storage->GetTuple("master", int_f1, read_page, &msg);
-	EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t1, *pt1);
-	delete pt1;
+    EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
 
-	//After Commit
-	EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    // After Commit
+    pt23 = storage->GetTuple("master", int_f2, read_page, &msg);
+    EXPECT_NE(pt23, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t23, *pt23);
+    delete pt23;
 
-	pt1 = storage->GetTuple("master", int_f1, read_page, &msg);
-	EXPECT_EQ(pt1, reinterpret_cast<Tuple*>(0)) << msg;
+// An empty commit
+    EXPECT_FALSE(storage->Commit(&commit_id, &msg)) << msg;
 
-	delete int_f1; 
-	delete int_f2;
-	delete int_f3;
-	delete str_f1;
-	delete str_f2;
-	delete str_f3;
+// Remove an existent tuple
+    EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
+
+    // Before commit
+    pt1 = storage->GetTuple("master", int_f1, read_page, &msg);
+    EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t1, *pt1);
+    delete pt1;
+
+    // After Commit
+    EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+
+    pt1 = storage->GetTuple("master", int_f1, read_page, &msg);
+    EXPECT_EQ(pt1, reinterpret_cast<Tuple*>(0)) << msg;
+
+    delete int_f1;
+
+    delete int_f2;
+    delete int_f3;
+    delete str_f1;
+    delete str_f2;
+    delete str_f3;
 }
 
 TEST_F(RelationTest, OperationAfterInsert) {
+    Tuple t1(tuple_store, 0, schema);
 
-	Tuple t1(tuple_store, 0, schema);	
-	Field* int_f1 = new IntField(1);
-	Field* str_f1 = new StrField("1");
-	t1.SetFieldByIndex(0, int_f1, 0);
-	t1.SetFieldByIndex(1, str_f1, 0);
+    Field* int_f1 = new IntField(1);
+    Field* str_f1 = new StrField("1");
+    t1.SetFieldByIndex(0, int_f1, 0);
+    t1.SetFieldByIndex(1, str_f1, 0);
 
-	Tuple t2(tuple_store, 500, schema);	
-	Field* int_f2 = new IntField(2);
-	Field* str_f2 = new StrField("2");
-	t2.SetFieldByIndex(0, int_f2, 0);
-	t2.SetFieldByIndex(1, str_f2, 0);
+    Tuple t2(tuple_store, 500, schema);
 
-	Field* int_f3 = new IntField(3);
-	Field* str_f3 = new StrField("3");
+    Field* int_f2 = new IntField(2);
+    Field* str_f2 = new StrField("2");
+    t2.SetFieldByIndex(0, int_f2, 0);
+    t2.SetFieldByIndex(1, str_f2, 0);
 
-	Tuple t12(tuple_store, 1000, schema);	
-	t12.SetFieldByIndex(0, int_f1, 0);
-	t12.SetFieldByIndex(1, str_f2, 0);
+    Field* int_f3 = new IntField(3);
+    Field* str_f3 = new StrField("3");
 
-	Tuple t23(tuple_store, 1500, schema);	
-	t23.SetFieldByIndex(0, int_f2, 0);
-	t23.SetFieldByIndex(1, str_f3, 0);
+    Tuple t12(tuple_store, 1000, schema);
 
-	CommitID commit_id;
-	string msg;
+    t12.SetFieldByIndex(0, int_f1, 0);
+    t12.SetFieldByIndex(1, str_f2, 0);
 
-	EXPECT_TRUE(storage->InsertTuple(&t2, &msg)) << msg;	
+    Tuple t23(tuple_store, 1500, schema);
 
-//Reinsertion in the same commit
-	EXPECT_FALSE(storage->InsertTuple(&t23, &msg)) << msg;	
+    t23.SetFieldByIndex(0, int_f2, 0);
+    t23.SetFieldByIndex(1, str_f3, 0);
 
-//Update after the commit in the same commit
-	EXPECT_TRUE(storage->UpdateTuple(&t23, &msg)) << msg;	
+    CommitID commit_id;
+    string msg;
 
-	//Before Commit
-	Tuple *pt23 = storage->GetTuple("master", int_f2, read_page, &msg);
-	EXPECT_EQ(pt23, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_TRUE(storage->InsertTuple(&t2, &msg)) << msg;
 
-	EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+// Reinsertion in the same commit
+    EXPECT_FALSE(storage->InsertTuple(&t23, &msg)) << msg;
 
-	//After Commit
-	pt23 = storage->GetTuple("master", int_f2, read_page, &msg);
-	EXPECT_NE(pt23, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t23, *pt23);
-	delete pt23;
+// Update after the commit in the same commit
+    EXPECT_TRUE(storage->UpdateTuple(&t23, &msg)) << msg;
 
+    // Before Commit
+    Tuple *pt23 = storage->GetTuple("master", int_f2, read_page, &msg);
+    EXPECT_EQ(pt23, reinterpret_cast<Tuple*>(0)) << msg;
 
-//Delete After the insert in the same commit
-	EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;	
-	EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
+    EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
 
-//Fail to commit since no operaitons
-	EXPECT_FALSE(storage->Commit(&commit_id, &msg)) << msg;
+    // After Commit
+    pt23 = storage->GetTuple("master", int_f2, read_page, &msg);
+    EXPECT_NE(pt23, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t23, *pt23);
+    delete pt23;
 
-	delete int_f1; 
-	delete int_f2;
-	delete int_f3;
-	delete str_f1;
-	delete str_f2;
-	delete str_f3;
+// Delete After the insert in the same commit
+    EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
+
+    EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
+
+// Fail to commit since no operaitons
+    EXPECT_FALSE(storage->Commit(&commit_id, &msg)) << msg;
+
+    delete int_f1;
+
+    delete int_f2;
+    delete int_f3;
+    delete str_f1;
+    delete str_f2;
+    delete str_f3;
 }
 
 TEST_F(RelationTest, OperationAfterUpdate) {
 
-	Tuple t1(tuple_store, 0, schema);	
-	Field* int_f1 = new IntField(1);
-	Field* str_f1 = new StrField("1");
-	t1.SetFieldByIndex(0, int_f1, 0);
-	t1.SetFieldByIndex(1, str_f1, 0);
+    Tuple t1(tuple_store, 0, schema);
 
-	Tuple t2(tuple_store, 500, schema);	
-	Field* int_f2 = new IntField(2);
-	Field* str_f2 = new StrField("2");
-	t2.SetFieldByIndex(0, int_f2, 0);
-	t2.SetFieldByIndex(1, str_f2, 0);
+    Field* int_f1 = new IntField(1);
+    Field* str_f1 = new StrField("1");
+    t1.SetFieldByIndex(0, int_f1, 0);
+    t1.SetFieldByIndex(1, str_f1, 0);
 
-	Field* int_f3 = new IntField(3);
-	Field* str_f3 = new StrField("3");
-	Field* str_f4 = new StrField("4");
+    Tuple t2(tuple_store, 500, schema);
 
-	Tuple t12(tuple_store, 1000, schema);	
-	t12.SetFieldByIndex(0, int_f1, 0);
-	t12.SetFieldByIndex(1, str_f2, 0);
+    Field* int_f2 = new IntField(2);
+    Field* str_f2 = new StrField("2");
+    t2.SetFieldByIndex(0, int_f2, 0);
+    t2.SetFieldByIndex(1, str_f2, 0);
 
-	Tuple t13(tuple_store, 1500, schema);	
-	t13.SetFieldByIndex(0, int_f1, 0);
-	t13.SetFieldByIndex(1, str_f3, 0);
+    Field* int_f3 = new IntField(3);
+    Field* str_f3 = new StrField("3");
+    Field* str_f4 = new StrField("4");
 
-	Tuple t14(tuple_store, 1500, schema);	
-	t13.SetFieldByIndex(0, int_f1, 0);
-	t13.SetFieldByIndex(1, str_f4, 0);
+    Tuple t12(tuple_store, 1000, schema);
 
-	CommitID commit_id;
-	string msg;
+    t12.SetFieldByIndex(0, int_f1, 0);
+    t12.SetFieldByIndex(1, str_f2, 0);
 
-	EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;	
+    Tuple t13(tuple_store, 1500, schema);
 
-	EXPECT_TRUE(storage->UpdateTuple(&t12, &msg)) << msg;	
+    t13.SetFieldByIndex(0, int_f1, 0);
+    t13.SetFieldByIndex(1, str_f3, 0);
 
-//Insert After Update in the same commit
-	EXPECT_FALSE(storage->InsertTuple(&t12, &msg)) << msg;	
+    Tuple t14(tuple_store, 1500, schema);
 
-//Updata after the update in the same commit
-	EXPECT_TRUE(storage->UpdateTuple(&t13, &msg)) << msg;	
+    t13.SetFieldByIndex(0, int_f1, 0);
+    t13.SetFieldByIndex(1, str_f4, 0);
 
-	EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    CommitID commit_id;
+    string msg;
 
-	Tuple* pt13 = storage->GetTuple("master", int_f1, read_page, &msg);
-	EXPECT_NE(pt13, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t13, *pt13);
-	delete pt13;
+    EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
 
+    EXPECT_TRUE(storage->UpdateTuple(&t12, &msg)) << msg;
 
-//Delete After the update in the previous commit
-	EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
-	EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+// Insert After Update in the same commit
+    EXPECT_FALSE(storage->InsertTuple(&t12, &msg)) << msg;
 
-	pt13 = storage->GetTuple("master", int_f1, read_page, &msg);
-	EXPECT_EQ(pt13, reinterpret_cast<Tuple*>(0)) << msg;
+// Updata after the update in the same commit
+    EXPECT_TRUE(storage->UpdateTuple(&t13, &msg)) << msg;
 
-//Remove after the update int same commit
-	EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
-	EXPECT_TRUE(storage->UpdateTuple(&t14, &msg)) << msg;	
-	EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
+    EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
 
-//Fail to commit as no operation
-	EXPECT_FALSE(storage->Commit(&commit_id, &msg)) << msg;
+    Tuple* pt13 = storage->GetTuple("master", int_f1, read_page, &msg);
+    EXPECT_NE(pt13, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t13, *pt13);
+    delete pt13;
 
-	delete int_f1; 
-	delete int_f2;
-	delete int_f3;
-	delete str_f1;
-	delete str_f2;
-	delete str_f3;
-	delete str_f4;
+// Delete After the update in the previous commit
+    EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
+    EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+
+    pt13 = storage->GetTuple("master", int_f1, read_page, &msg);
+    EXPECT_EQ(pt13, reinterpret_cast<Tuple*>(0)) << msg;
+
+// Remove after the update int same commit
+    EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
+    EXPECT_TRUE(storage->UpdateTuple(&t14, &msg)) << msg;
+
+    EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
+
+// Fail to commit as no operation
+    EXPECT_FALSE(storage->Commit(&commit_id, &msg)) << msg;
+
+    delete int_f1;
+
+    delete int_f2;
+    delete int_f3;
+    delete str_f1;
+    delete str_f2;
+    delete str_f3;
+    delete str_f4;
 }
 
-
 TEST_F(RelationTest, OperationAfterRemove) {
+    Tuple t1(tuple_store, 0, schema);
 
-	Tuple t1(tuple_store, 0, schema);	
-	Field* int_f1 = new IntField(1);
-	Field* str_f1 = new StrField("1");
-	t1.SetFieldByIndex(0, int_f1, 0);
-	t1.SetFieldByIndex(1, str_f1, 0);
+    Field* int_f1 = new IntField(1);
+    Field* str_f1 = new StrField("1");
+    t1.SetFieldByIndex(0, int_f1, 0);
+    t1.SetFieldByIndex(1, str_f1, 0);
 
-	Tuple t2(tuple_store, 500, schema);	
-	Field* int_f2 = new IntField(2);
-	Field* str_f2 = new StrField("2");
-	t2.SetFieldByIndex(0, int_f2, 0);
-	t2.SetFieldByIndex(1, str_f2, 0);
+    Tuple t2(tuple_store, 500, schema);
 
-	Tuple t12(tuple_store, 1000, schema);	
-	t12.SetFieldByIndex(0, int_f1, 0);
-	t12.SetFieldByIndex(1, str_f2, 0);
+    Field* int_f2 = new IntField(2);
+    Field* str_f2 = new StrField("2");
+    t2.SetFieldByIndex(0, int_f2, 0);
+    t2.SetFieldByIndex(1, str_f2, 0);
 
-	CommitID commit_id;
-	string msg;
+    Tuple t12(tuple_store, 1000, schema);
 
-	EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;	
+    t12.SetFieldByIndex(0, int_f1, 0);
+    t12.SetFieldByIndex(1, str_f2, 0);
 
-	EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    CommitID commit_id;
+    string msg;
 
-	EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
-	
-	//Can not remove again
-	EXPECT_FALSE(storage->RemoveTuple(int_f1, &msg)) << msg;
+    EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
 
-	// cout << "Msg: " << msg << endl;
+    EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
 
-	//Can not update after: delete
-	EXPECT_FALSE(storage->UpdateTuple(&t12, &msg)) << msg;
+    EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
 
-	//Reinsert in this commit
-	EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;	
+    // Can not remove again
+    EXPECT_FALSE(storage->RemoveTuple(int_f1, &msg)) << msg;
 
-	EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
+    //  std::cout << "Msg: " << msg << std::endl;
 
-	//Can not remove again
-	EXPECT_FALSE(storage->RemoveTuple(int_f1, &msg)) << msg;
-	//Can not update after delete
-	EXPECT_FALSE(storage->UpdateTuple(&t12, &msg)) << msg;
+    // Can not update after: delete
+    EXPECT_FALSE(storage->UpdateTuple(&t12, &msg)) << msg;
 
-//Fail to commit as no operation
-	EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    // Reinsert in this commit
+    EXPECT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
 
-	delete int_f1; 
-	delete int_f2;
-	delete str_f1;
-	delete str_f2;
+    EXPECT_TRUE(storage->RemoveTuple(int_f1, &msg)) << msg;
+
+    // Can not remove again
+    EXPECT_FALSE(storage->RemoveTuple(int_f1, &msg)) << msg;
+    // Can not update after delete
+    EXPECT_FALSE(storage->UpdateTuple(&t12, &msg)) << msg;
+
+// Fail to commit as no operation
+    EXPECT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+
+    delete int_f1;
+
+    delete int_f2;
+    delete str_f1;
+    delete str_f2;
 }
 
 TEST_F(RelationTest, Branch) {
+    std::cout << "Relation Name: " << relation_name << std::endl;
+    string msg;
+    CommitID commit_id;
 
-	cout << "Relation Name: " << relation_name << endl;
-	string msg;
-	CommitID commit_id;
+    Field* int_f1 = new IntField(1);
+    Field* int_f2 = new IntField(2);
+    Field* int_f3 = new IntField(3);
 
-	Field* int_f1 = new IntField(1);
-	Field* int_f2 = new IntField(2);
-	Field* int_f3 = new IntField(3);
+    Field* str_f1 = new StrField("1");
+    Field* str_f2 = new StrField("2");
+    Field* str_f3 = new StrField("3");
 
-	Field* str_f1 = new StrField("1");
-	Field* str_f2 = new StrField("2");
-	Field* str_f3 = new StrField("3");
+    Tuple t1(tuple_store, 0, schema);
 
-	Tuple t1(tuple_store, 0, schema);	
-	t1.SetFieldByIndex(0, int_f1, &msg);
-	t1.SetFieldByIndex(1, str_f1, &msg);
+    t1.SetFieldByIndex(0, int_f1, &msg);
+    t1.SetFieldByIndex(1, str_f1, &msg);
 
-	Tuple t21(tuple_store, 500, schema);	
-	t21.SetFieldByIndex(0, int_f2, &msg);
-	t21.SetFieldByIndex(1, str_f1, &msg);
+    Tuple t21(tuple_store, 500, schema);
 
-	Tuple t22(tuple_store, 1000, schema);	
-	t22.SetFieldByIndex(0, int_f2, &msg);
-	t22.SetFieldByIndex(1, str_f2, &msg);
+    t21.SetFieldByIndex(0, int_f2, &msg);
+    t21.SetFieldByIndex(1, str_f1, &msg);
 
-	Tuple t3(tuple_store, 1500, schema);	
-	t3.SetFieldByIndex(0, int_f3, &msg);
-	t3.SetFieldByIndex(1, str_f3, &msg);
+    Tuple t22(tuple_store, 1000, schema);
 
-	ASSERT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
-	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    t22.SetFieldByIndex(0, int_f2, &msg);
+    t22.SetFieldByIndex(1, str_f2, &msg);
 
-	string master_branch = "master";
-	string branch1 = "branch1";
+    Tuple t3(tuple_store, 1500, schema);
 
-	EXPECT_TRUE(storage->Branch(master_branch, branch1, &msg));
-	EXPECT_STREQ(storage->GetCurrentBranchInfo().branch_name.c_str(), branch1.c_str());
-	EXPECT_STREQ(storage->GetCurrentBranchInfo().base_branch.c_str(), master_branch.c_str());
+    t3.SetFieldByIndex(0, int_f3, &msg);
+    t3.SetFieldByIndex(1, str_f3, &msg);
 
-	ASSERT_TRUE(storage->InsertTuple(&t21, &msg)) << msg;
-	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    ASSERT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
+    ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
 
-	ASSERT_TRUE(storage->InsertTuple(&t3, &msg)) << msg;
-	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    string master_branch = "master";
+    string branch1 = "branch1";
 
-	EXPECT_FALSE(storage->Switch("Non Existent Branch", &msg)) << msg;
+    EXPECT_TRUE(storage->Branch(master_branch, branch1, &msg));
+    EXPECT_STREQ(storage->GetCurrentBranchInfo().branch_name.c_str(),
+                 branch1.c_str());
+    EXPECT_STREQ(storage->GetCurrentBranchInfo().base_branch.c_str(),
+                 master_branch.c_str());
 
-	ASSERT_TRUE(storage->Switch(master_branch, &msg));
-	EXPECT_STREQ(storage->GetCurrentBranchInfo().branch_name.c_str(), master_branch.c_str());
-	EXPECT_STREQ(storage->GetCurrentBranchInfo().base_branch.c_str(), master_branch.c_str());
+    ASSERT_TRUE(storage->InsertTuple(&t21, &msg)) << msg;
+    ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
 
-	ASSERT_TRUE(storage->InsertTuple(&t22, &msg)) << msg;
-	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    ASSERT_TRUE(storage->InsertTuple(&t3, &msg)) << msg;
+    ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+
+    EXPECT_FALSE(storage->Switch("Non Existent Branch", &msg)) << msg;
+
+    ASSERT_TRUE(storage->Switch(master_branch, &msg));
+    EXPECT_STREQ(storage->GetCurrentBranchInfo().branch_name.c_str(),
+                 master_branch.c_str());
+    EXPECT_STREQ(storage->GetCurrentBranchInfo().base_branch.c_str(),
+                 master_branch.c_str());
+
+    ASSERT_TRUE(storage->InsertTuple(&t22, &msg)) << msg;
+    ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
 
 /*
 
@@ -441,120 +487,125 @@ t1 -> t21 -> t3 (branch1)
  | -> t22 (master)
 
 */
-	Tuple *pt1,*pt2,*pt3;
+    Tuple *pt1, *pt2, *pt3;
 
-//Common tuple pt1 from both branches
-	pt1 = storage->GetTuple(master_branch, int_f1, read_page, &msg);
-	EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t1, *pt1);
-	delete pt1;
+// Common tuple pt1 from both branches
+    pt1 = storage->GetTuple(master_branch, int_f1, read_page, &msg);
+    EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t1, *pt1);
+    delete pt1;
 
-	pt1 = storage->GetTuple(branch1, int_f1, read_page, &msg);
-	EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t1, *pt1);
-	delete pt1;
+    pt1 = storage->GetTuple(branch1, int_f1, read_page, &msg);
+    EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t1, *pt1);
+    delete pt1;
 
-//diffent tuple pt2 with same pk from both branches
-	pt2 = storage->GetTuple(master_branch, int_f2, read_page, &msg);
-	EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t22, *pt2);
-	delete pt2;
+// diffent tuple pt2 with same pk from both branches
+    pt2 = storage->GetTuple(master_branch, int_f2, read_page, &msg);
+    EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t22, *pt2);
+    delete pt2;
 
-	pt2 = storage->GetTuple(branch1, int_f2, read_page, &msg);
-	EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t21, *pt2);
-	delete pt2;
+    pt2 = storage->GetTuple(branch1, int_f2, read_page, &msg);
+    EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t21, *pt2);
+    delete pt2;
 
-	pt3 = storage->GetTuple(master_branch, int_f3, read_page, &msg);
-	EXPECT_EQ(pt3, reinterpret_cast<Tuple*>(0)) << msg;
+    pt3 = storage->GetTuple(master_branch, int_f3, read_page, &msg);
+    EXPECT_EQ(pt3, reinterpret_cast<Tuple*>(0)) << msg;
 
-	pt3 = storage->GetTuple(branch1, int_f3, read_page, &msg);
-	EXPECT_NE(pt3, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t3, *pt3);
-	delete pt3;
-
+    pt3 = storage->GetTuple(branch1, int_f3, read_page, &msg);
+    EXPECT_NE(pt3, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t3, *pt3);
+    delete pt3;
 
 /*
-Merge: 
+Merge:
+
 t1 -> t21 -> t3 (branch1)
  | -> t22 --- | -> master
 
 */
-	ASSERT_TRUE(storage->Merge(&commit_id, master_branch, branch1, &msg)) << msg;
+    ASSERT_TRUE(storage->Merge(&commit_id,
+                               master_branch,
+                               branch1, &msg)) << msg;
 
-	pt1 = storage->GetTuple(master_branch, int_f1, read_page, &msg);
-	EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t1, *pt1);
-	delete pt1;
+    pt1 = storage->GetTuple(master_branch, int_f1, read_page, &msg);
+    EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t1, *pt1);
+    delete pt1;
 
-	pt2 = storage->GetTuple(master_branch, int_f2, read_page, &msg);
-	EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t22, *pt2);
-	delete pt2;
+    pt2 = storage->GetTuple(master_branch, int_f2, read_page, &msg);
+    EXPECT_NE(pt1, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t22, *pt2);
+    delete pt2;
 
-	pt3 = storage->GetTuple(master_branch, int_f3, read_page, &msg);
-	EXPECT_NE(pt3, reinterpret_cast<Tuple*>(0)) << msg;
-	EXPECT_EQ(t3, *pt3);
-	delete pt3;
+    pt3 = storage->GetTuple(master_branch, int_f3, read_page, &msg);
+    EXPECT_NE(pt3, reinterpret_cast<Tuple*>(0)) << msg;
+    EXPECT_EQ(t3, *pt3);
+    delete pt3;
 
-	delete int_f1;
-	delete int_f2;
-	delete int_f3;
+    delete int_f1;
+    delete int_f2;
+    delete int_f3;
 
-	delete str_f1;
-	delete str_f2;
-	delete str_f3;
+    delete str_f1;
+    delete str_f2;
+    delete str_f3;
 }
-
 
 TEST_F(RelationTest, ScanDiffJoin) {
 
-	cout << "Relation Name: " << relation_name << endl;
-	string msg;
-	CommitID commit_id;
+    std::cout << "Relation Name: " << relation_name << std::endl;
+    string msg;
+    CommitID commit_id;
 
-	Field* int_f1 = new IntField(1);
-	Field* int_f2 = new IntField(2);
-	Field* int_f3 = new IntField(3);
+    Field* int_f1 = new IntField(1);
+    Field* int_f2 = new IntField(2);
+    Field* int_f3 = new IntField(3);
 
-	Field* str_f1 = new StrField("1");
-	Field* str_f2 = new StrField("2");
-	Field* str_f3 = new StrField("3");
+    Field* str_f1 = new StrField("1");
+    Field* str_f2 = new StrField("2");
+    Field* str_f3 = new StrField("3");
 
-	Tuple t1(tuple_store, 0, schema);	
-	t1.SetFieldByIndex(0, int_f1, &msg);
-	t1.SetFieldByIndex(1, str_f1, &msg);
+    Tuple t1(tuple_store, 0, schema);
 
-	Tuple t21(tuple_store, 500, schema);	
-	t21.SetFieldByIndex(0, int_f2, &msg);
-	t21.SetFieldByIndex(1, str_f1, &msg);
+    t1.SetFieldByIndex(0, int_f1, &msg);
+    t1.SetFieldByIndex(1, str_f1, &msg);
 
-	Tuple t22(tuple_store, 1000, schema);	
-	t22.SetFieldByIndex(0, int_f2, &msg);
-	t22.SetFieldByIndex(1, str_f2, &msg);
+    Tuple t21(tuple_store, 500, schema);
 
-	Tuple t3(tuple_store, 1500, schema);	
-	t3.SetFieldByIndex(0, int_f3, &msg);
-	t3.SetFieldByIndex(1, str_f3, &msg);
+    t21.SetFieldByIndex(0, int_f2, &msg);
+    t21.SetFieldByIndex(1, str_f1, &msg);
 
-	ASSERT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
-	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    Tuple t22(tuple_store, 1000, schema);
 
-	string master_branch = "master";
-	string branch1 = "branch1";
+    t22.SetFieldByIndex(0, int_f2, &msg);
+    t22.SetFieldByIndex(1, str_f2, &msg);
 
-	EXPECT_TRUE(storage->Branch(master_branch, branch1, &msg));
+    Tuple t3(tuple_store, 1500, schema);
 
-	ASSERT_TRUE(storage->InsertTuple(&t21, &msg)) << msg;
-	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    t3.SetFieldByIndex(0, int_f3, &msg);
+    t3.SetFieldByIndex(1, str_f3, &msg);
 
-	ASSERT_TRUE(storage->InsertTuple(&t3, &msg)) << msg;
-	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    ASSERT_TRUE(storage->InsertTuple(&t1, &msg)) << msg;
+    ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
 
-	ASSERT_TRUE(storage->Switch(master_branch, &msg));
+    string master_branch = "master";
+    string branch1 = "branch1";
 
-	ASSERT_TRUE(storage->InsertTuple(&t22, &msg)) << msg;
-	ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+    EXPECT_TRUE(storage->Branch(master_branch, branch1, &msg));
+
+    ASSERT_TRUE(storage->InsertTuple(&t21, &msg)) << msg;
+    ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+
+    ASSERT_TRUE(storage->InsertTuple(&t3, &msg)) << msg;
+    ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
+
+    ASSERT_TRUE(storage->Switch(master_branch, &msg));
+
+    ASSERT_TRUE(storage->InsertTuple(&t22, &msg)) << msg;
+    ASSERT_TRUE(storage->Commit(&commit_id, &msg)) << msg;
 
 /*
 
@@ -562,143 +613,164 @@ t1 -> t21 -> t3 (branch1)
  | -> t22 (master)
 
 */
-	storage->SetReadBuffer(read_page);
+    storage->SetReadBuffer(read_page);
 
-//Scan branch1
-	Tuple::Iterator* it = storage->Scan(branch1, &msg);
-	unsigned tuple_count = 0;
-	vector<Tuple*> tuples = {&t1, &t21,&t3};
-	unsigned expected_count = tuples.size();
+// Scan branch1
+    Tuple::Iterator* it = storage->Scan(branch1, &msg);
+    unsigned tuple_count = 0;
+    vector<Tuple*> tuples = {&t1, &t21, &t3};
+    unsigned expected_count = tuples.size();
 
-	while(!it->End()){
-		const Tuple* ct = it->GetTuple();
-		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
-		ASSERT_NE(ft, tuples.end());
-		tuples.erase(ft);
-		++tuple_count;
-		it->Next();
-	}
+    while (!it->End()) {
+        const Tuple* ct = it->GetTuple();
+        auto ft = find_if(tuples.begin(),
+                          tuples.end(),
+                          [ct](Tuple* t) { return *t == *ct;});
+        ASSERT_NE(ft, tuples.end());
+        tuples.erase(ft);
+        ++tuple_count;
+        it->Next();
+    }
 
-	ASSERT_EQ(tuple_count,expected_count); 
-	ASSERT_EQ(tuples.size(), 0);
+    ASSERT_EQ(tuple_count, expected_count);
 
-//Scan master branch 
-	it = storage->Scan(master_branch, &msg);
-	tuples = {&t1, &t22};
-	expected_count = tuples.size();
-	tuple_count = 0;
+    ASSERT_EQ(tuples.size(), 0);
 
-	while(!it->End()){
-		const Tuple* ct = it->GetTuple();
-		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
-		ASSERT_NE(ft, tuples.end());
-		tuples.erase(ft);
-		++tuple_count;
-		it->Next();
-	}
+// Scan master branch
 
-	ASSERT_EQ(tuple_count,expected_count); 
-	ASSERT_EQ(tuples.size(), 0);
+    it = storage->Scan(master_branch, &msg);
+    tuples = {&t1, &t22};
+    expected_count = tuples.size();
+    tuple_count = 0;
 
-//Diff branch1 - master
+    while (!it->End()) {
+        const Tuple* ct = it->GetTuple();
+        auto ft = find_if(tuples.begin(),
+                          tuples.end(),
+                          [ct](Tuple* t) { return *t == *ct;});
+        ASSERT_NE(ft, tuples.end());
+        tuples.erase(ft);
+        ++tuple_count;
+        it->Next();
+    }
 
-	it = storage->Diff(branch1, master_branch, &msg);
-	tuples = {&t3};
-	expected_count = tuples.size();
-	tuple_count = 0;
+    ASSERT_EQ(tuple_count, expected_count);
 
-	while(!it->End()){
-		const Tuple* ct = it->GetTuple();
-		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
-		ASSERT_NE(ft, tuples.end());
-		tuples.erase(ft);
-		++tuple_count;
-		it->Next();
-	}
+    ASSERT_EQ(tuples.size(), 0);
 
-	ASSERT_EQ(tuple_count,expected_count); 
-	ASSERT_EQ(tuples.size(), 0);
+// Diff branch1 - master
 
-//Diff master - branch1
-	it = storage->Diff(master_branch,branch1, &msg);
-	tuples = {};
-	expected_count = tuples.size();
-	tuple_count = 0;
+    it = storage->Diff(branch1, master_branch, &msg);
+    tuples = {&t3};
+    expected_count = tuples.size();
+    tuple_count = 0;
 
-	while(!it->End()){
-		const Tuple* ct = it->GetTuple();
-		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
-		ASSERT_NE(ft, tuples.end());
-		tuples.erase(ft);
-		++tuple_count;
-		it->Next();
-	}
+    while (!it->End()) {
+        const Tuple* ct = it->GetTuple();
+        auto ft = find_if(tuples.begin(),
+                          tuples.end(),
+                          [ct](Tuple* t) { return *t == *ct;});
+        ASSERT_NE(ft, tuples.end());
+        tuples.erase(ft);
+        ++tuple_count;
+        it->Next();
+    }
 
-	ASSERT_EQ(tuple_count,expected_count); 
-	ASSERT_EQ(tuples.size(), 0);
+    ASSERT_EQ(tuple_count, expected_count);
 
-//Join branch1 and master
-	it = storage->Join(branch1,master_branch, 0, &msg);
-	tuples = {&t1,&t21};
-	expected_count = tuples.size();
-	tuple_count = 0;
+    ASSERT_EQ(tuples.size(), 0);
 
-	while(!it->End()){
-		const Tuple* ct = it->GetTuple();
-		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
-		ASSERT_NE(ft, tuples.end());
-		tuples.erase(ft);
-		++tuple_count;
-		it->Next();
-	}
+// Diff master - branch1
+    it = storage->Diff(master_branch, branch1, &msg);
+    tuples = {};
+    expected_count = tuples.size();
+    tuple_count = 0;
 
-	ASSERT_EQ(tuple_count,expected_count); 
-	ASSERT_EQ(tuples.size(), 0);
+    while (!it->End()) {
+        const Tuple* ct = it->GetTuple();
+        auto ft = find_if(tuples.begin(),
+                          tuples.end(),
+                          [ct](Tuple* t) { return *t == *ct;});
+        ASSERT_NE(ft, tuples.end());
+        tuples.erase(ft);
+        ++tuple_count;
+        it->Next();
+    }
 
+    ASSERT_EQ(tuple_count, expected_count);
 
-//Join master and branch1 with predicate
-	Predicate p("StrF", kEQ, *str_f2);
-	it = storage->Join(master_branch,branch1, &p, &msg);
-	tuples = {&t22};
-	expected_count = tuples.size();
-	tuple_count = 0;
+    ASSERT_EQ(tuples.size(), 0);
 
-	while(!it->End()){
-		const Tuple* ct = it->GetTuple();
-		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
-		ASSERT_NE(ft, tuples.end());
-		tuples.erase(ft);
-		++tuple_count;
-		it->Next();
-	}
+// Join branch1 and master
+    it = storage->Join(branch1, master_branch, 0, &msg);
+    tuples = {&t1, &t21};
+    expected_count = tuples.size();
+    tuple_count = 0;
 
-	ASSERT_EQ(tuple_count,expected_count); 
-	ASSERT_EQ(tuples.size(), 0);
+    while (!it->End()) {
+        const Tuple* ct = it->GetTuple();
+        auto ft = find_if(tuples.begin(),
+                          tuples.end(),
+                          [ct](Tuple* t) { return *t == *ct;});
+        ASSERT_NE(ft, tuples.end());
+        tuples.erase(ft);
+        ++tuple_count;
+        it->Next();
+    }
 
-//Join master and branch1 without predicate
-	it = storage->Join(master_branch,branch1, 0, &msg);
-	tuples = {&t1, &t22};
-	expected_count = tuples.size();
-	tuple_count = 0;
+    ASSERT_EQ(tuple_count, expected_count);
 
-	while(!it->End()){
-		const Tuple* ct = it->GetTuple();
-		auto ft = find_if(tuples.begin(), tuples.end(), [ct](Tuple* t) { return *t == *ct;});
-		ASSERT_NE(ft, tuples.end());
-		tuples.erase(ft);
-		++tuple_count;
-		it->Next();
-	}
+    ASSERT_EQ(tuples.size(), 0);
 
-	ASSERT_EQ(tuple_count,expected_count); 
-	ASSERT_EQ(tuples.size(), 0);
-	delete it;
+// Join master and branch1 with predicate
+    Predicate p("StrF", ComparisonOp::kEQ, *str_f2);
+    it = storage->Join(master_branch, branch1, &p, &msg);
+    tuples = {&t22};
+    expected_count = tuples.size();
+    tuple_count = 0;
 
-	delete int_f1;
-	delete int_f2;
-	delete int_f3;
+    while (!it->End()) {
+        const Tuple* ct = it->GetTuple();
+        auto ft = find_if(tuples.begin(),
+                          tuples.end(),
+                          [ct](Tuple* t) { return *t == *ct;});
+        ASSERT_NE(ft, tuples.end());
+        tuples.erase(ft);
+        ++tuple_count;
+        it->Next();
+    }
 
-	delete str_f1;
-	delete str_f2;
-	delete str_f3;
+    ASSERT_EQ(tuple_count, expected_count);
+
+    ASSERT_EQ(tuples.size(), 0);
+
+// Join master and branch1 without predicate
+    it = storage->Join(master_branch, branch1, 0, &msg);
+    tuples = {&t1, &t22};
+    expected_count = tuples.size();
+    tuple_count = 0;
+
+    while (!it->End()) {
+        const Tuple* ct = it->GetTuple();
+        auto ft = find_if(tuples.begin(),
+                          tuples.end(),
+                          [ct](Tuple* t) { return *t == *ct;});
+        ASSERT_NE(ft, tuples.end());
+        tuples.erase(ft);
+        ++tuple_count;
+        it->Next();
+    }
+
+    ASSERT_EQ(tuple_count, expected_count);
+
+    ASSERT_EQ(tuples.size(), 0);
+    delete it;
+
+    delete int_f1;
+    delete int_f2;
+    delete int_f3;
+
+    delete str_f1;
+    delete str_f2;
+    delete str_f3;
 }
