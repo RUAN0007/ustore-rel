@@ -17,23 +17,31 @@
 
 #define MAX_LOGMSG_LEN    1024 /* Default maximum length of syslog messages */
 
-#if defined __cplusplus && __GNUC_PREREQ (2,95)
+#if defined __cplusplus && __GNUC_PREREQ (2, 95)
 # define __ASSERT_VOID_CAST static_cast<void>
 #else
 # define __ASSERT_VOID_CAST (void)
 #endif
 
-void _Log(char* file, char *func, int lineno, int level, const char *fmt, ...);
+void _Log(const char* file, const char *func,
+          int lineno, int level, const char *fmt, ...);
+
 void StackTrace();
 
-#define LOG(level, fmt, ...) _Log ((char*)__FILE__, (char*)__func__, __LINE__, level, fmt, ## __VA_ARGS__)
+#define LOG(level, fmt, ...) _Log (reinterpret_cast<const char*>(__FILE__), \
+                             reinterpret_cast<const char*>(__func__), \
+                             __LINE__, \
+                             level, \
+                             fmt, \
+                             ## __VA_ARGS__)
 
 #ifdef NDEBUG
 #define Assert(_e) (__ASSERT_VOID_CAST (0))
 #else
-#define Assert(_e) ((_e)?(void)0 : (LOG(LOG_WARNING, #_e" Assert Failed"),StackTrace(),assert(false)))
+#define Assert(_e) ((_e)?(void)0 : \
+                   (LOG(LOG_WARNING, #_e" Assert Failed"), \
+                   StackTrace(), assert(false)))
 #endif
-#define Panic(fmt, ...) LOG(LOG_FATAL, fmt, ##__VA_ARGS__),exit(1)
-
+#define Panic(fmt, ...) LOG(LOG_FATAL, fmt, ##__VA_ARGS__), exit(1)
 
 #endif /* INCLUDE_DEBUG_H_ */
