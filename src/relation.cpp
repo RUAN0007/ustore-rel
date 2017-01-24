@@ -1,20 +1,39 @@
 /*
-   @Author: RUAN0007
-   @Date:   2017-01-10 09:16:56
-   @Last_Modified_At:   2017-01-24 13:08:10
-   @Last_Modified_By:   RUAN0007
+   @Author : RUAN0007
+   @Date :   2017-01-10 09:16:56
+   @Last_Modified_At :   2017-01-24 13:19:31
+   @Last_Modified_By :   RUAN0007
 */
-#include "relation.h"
-#include "debug.h"
-#include "types.h"
+#include "./relation.h"
+
 #include <algorithm>    //  std::find_if
-#include <iterator>     //  std::distance
-using namespace std;
-using namespace boost;
+#include <string>
+#include <map>
+#include <vector>
+
+#include "./debug.h"
+#include "./types.h"
+
+using std::string;
+using std::find_if;
+using std::find;
+using std::map;
+using std::to_string;
+using std::vector;
+
+using boost::dynamic_bitset;
+
 namespace ustore {
 namespace relation {
-UstoreHeapStorage::UstoreHeapStorage(const string& relation_name, const TupleDscp& schema, ClientService* client, Page* commited_page):
-        commited_buffer_(commited_page),relation_name_(relation_name),schema_(schema),client_(client) {
+
+UstoreHeapStorage::UstoreHeapStorage(const string& relation_name,
+                                     const TupleDscp& schema,
+                                     ClientService* client,
+                                     Page* commited_page):
+            commited_buffer_(commited_page),
+            relation_name_(relation_name),
+            schema_(schema),
+            client_(client) {
         CommitRecord base_commit;
         base_commit.id = NULL_VERSION;
         base_commit.ustore_version = NULL_VERSION;
@@ -25,14 +44,15 @@ UstoreHeapStorage::UstoreHeapStorage(const string& relation_name, const TupleDsc
         BranchRecord master_branch;
         string master_branch_name = "master";
         master_branch.branch_name = master_branch_name;
-        master_branch.base_branch= master_branch_name; // the base of master branch is itself
+         // the base of master branch is itself
+        master_branch.base_branch = master_branch_name;
         master_branch.new_commit(base_commit_id);
         this->branches_info_[master_branch_name] = master_branch;
         this->current_branch_name_ = master_branch_name;
     }
 UstoreHeapStorage::~UstoreHeapStorage() {
     // free all hold fields
-    for(const Field* pk: this->pks_) {
+    for (const Field* pk : this->pks_) {
         delete pk;
     }
 }
@@ -49,96 +69,113 @@ void UstoreHeapStorage::SetCommitBuffer(Page* page) {
 
 vector<string> UstoreHeapStorage::GetAllBranchName() const {
     vector<string> branch_names;
-    for(const auto& branch_info: branches_info_) {
+    for (const auto& branch_info : branches_info_) {
         branch_names.push_back(branch_info.first);
     }
     return branch_names;
 }
 
 BranchRecord UstoreHeapStorage::GetCurrentBranchInfo() const {
-    auto current_branch_info_it = this->branches_info_.find(this->current_branch_name_);
+    auto current_branch_info_it =
+        this->branches_info_.find(this->current_branch_name_);
+
     return current_branch_info_it->second;
 }
 
-//  bool UstoreHeapStorage::CheckGetBranchInfo(ustore::relation::Branch branch_record, const string& branch_name, string& msg) const{
-//      auto branch_info_it = this->branches_info_.find(branch_name);
-//      if ( branch_info_it == this->branches_info_.end()) {
-//          if (msg != 0) *msg = "Base Branch " + branch_name + " does not exist";
-//          return false;
-//      }else{
-//          branch_record.branch_name = branch_info_it->branch_name;
-//          return true;
-//      }
-//  }
-bool UstoreHeapStorage::Branch(const std::string& base_branch_name, const std::string& new_branch_name, std::string* msg) {
+bool UstoreHeapStorage::Branch(const std::string& base_branch_name,
+                               const std::string& new_branch_name,
+                               std::string* msg) {
     auto base_branch_info_it = this->branches_info_.find(base_branch_name);
-    if ( base_branch_info_it == this->branches_info_.end()) {
-        if (msg != 0) *msg = "Base Branch " + base_branch_name + " does not exist";
+    if ( base_branch_info_it == this->branches_info_.end() ) {
+        if (msg != 0) {
+            *msg = "Base Branch " + base_branch_name + " does not exist";
+        }
         return false;
     }
-    CommitID base_branch_last_commitID = base_branch_info_it->second.commit_ids.back();
+    CommitID base_branch_last_commitID =
+                      base_branch_info_it->second.commit_ids.back();
+
     return this->Checkout(base_branch_last_commitID,
                           base_branch_name,
                           new_branch_name,
                           msg);
 }
 
-Tuple::Iterator* UstoreHeapStorage::Scan(const std::string& branch_name, std::string* msg) {
+Tuple::Iterator* UstoreHeapStorage::Scan(const std::string& branch_name,
+                                         std::string* msg) {
 // Check for branch existence.
     auto branch_info_it = this->branches_info_.find(branch_name);
-    if ( branch_info_it == this->branches_info_.end()) {
+    if ( branch_info_it == this->branches_info_.end() ) {
         if (msg != 0) *msg = "Base Branch " + branch_name + " does not exist";
         return Tuple::Iterator::GetEmptyIterator();
     }
-    CommitID base_branch_last_commitID = branch_info_it->second.commit_ids.back();
-    CommitRecord commit_record = this->commit_info_[base_branch_last_commitID];
-    vector<RecordID> record_ids = this->GetTupleRecords(commit_record.tuple_presence, commit_record.tuple_positions);
-    return new PageIterator(this->relation_name_, this->client_, this->read_page_, record_ids);
+    CommitID base_branch_last_commitID =
+                      branch_info_it->second.commit_ids.back();
+    CommitRecord commit_record =
+                      this->commit_info_[base_branch_last_commitID];
+    vector<RecordID> record_ids =
+                      this->GetTupleRecords(commit_record.tuple_presence,
+                                            commit_record.tuple_positions);
+
+    return new PageIterator(this->relation_name_,
+                            this->client_,
+                            this->read_page_,
+                            record_ids);
 }
 
-Tuple::Iterator* UstoreHeapStorage::Diff(const std::string& branch_name1, const std::string& branch_name2, std::string* msg) {
+Tuple::Iterator* UstoreHeapStorage::Diff(const std::string& branch_name1,
+                                         const std::string& branch_name2,
+                                         std::string* msg) {
 // Check for branch existence.
     auto branch_info_it = this->branches_info_.find(branch_name1);
-    if ( branch_info_it == this->branches_info_.end()) {
+    if ( branch_info_it == this->branches_info_.end() ) {
         if (msg != 0) *msg = "Base Branch " + branch_name1 + " does not exist";
         return Tuple::Iterator::GetEmptyIterator();
     }
     CommitID Branch_last_commitID = branch_info_it->second.commit_ids.back();
     CommitRecord Branch_commit = this->commit_info_[Branch_last_commitID];
     branch_info_it = this->branches_info_.find(branch_name2);
-    if ( branch_info_it == this->branches_info_.end()) {
+    if ( branch_info_it == this->branches_info_.end() ) {
         if (msg != 0) *msg = "Base Branch " + branch_name2 + " does not exist";
         return Tuple::Iterator::GetEmptyIterator();
     }
     CommitID branch2_last_commitID = branch_info_it->second.commit_ids.back();
     CommitRecord branch2_commit = this->commit_info_[branch2_last_commitID];
-// Retrieve the bitmap for the last commit of two branches and perform differencing
+    // Retrieve the bitmap for the last commit of two branches
+    // and perform differencing
     // Resize to be the same length
     size_t b1_size = Branch_commit.tuple_presence.size();
     size_t b2_size = branch2_commit.tuple_presence.size();
-    if ( b1_size > b2_size) {
+    if ( b1_size > b2_size ) {
         branch2_commit.tuple_presence.resize(b1_size, 0);
-    }else{
+    } else {
         Branch_commit.tuple_presence.resize(b2_size, 0);
     }
-    dynamic_bitset<> tuple_presence = Branch_commit.tuple_presence - branch2_commit.tuple_presence;
+    dynamic_bitset<> tuple_presence =
+                     Branch_commit.tuple_presence
+                      - branch2_commit.tuple_presence;
 // Retrieve the tuple record for Branch
     map<unsigned, RecordID> Branch_tuple_pos = Branch_commit.tuple_positions;
-    vector<RecordID> record_ids = this->GetTupleRecords(tuple_presence, Branch_tuple_pos);
-    return new PageIterator(this->relation_name_, this->client_, this->read_page_, record_ids);
+    vector<RecordID> record_ids = this->GetTupleRecords(tuple_presence,
+                                                        Branch_tuple_pos);
+    return new PageIterator(this->relation_name_, this->client_,
+                            this->read_page_, record_ids);
 }
 
-Tuple::Iterator* UstoreHeapStorage::Join(const std::string& branch_name1, const std::string& branch_name2, const Predicate* predicate , std::string* msg) {
+Tuple::Iterator* UstoreHeapStorage::Join(const std::string& branch_name1,
+                                         const std::string& branch_name2,
+                                         const Predicate* predicate,
+                                         std::string* msg) {
 // Check for branch existence.
     auto branch_info_it = this->branches_info_.find(branch_name1);
-    if ( branch_info_it == this->branches_info_.end()) {
+    if ( branch_info_it == this->branches_info_.end() ) {
         if (msg != 0) *msg = "Base Branch " + branch_name1 + " does not exist";
         return Tuple::Iterator::GetEmptyIterator();
     }
     CommitID Branch_last_commitID = branch_info_it->second.commit_ids.back();
     CommitRecord Branch_commit = this->commit_info_[Branch_last_commitID];
     branch_info_it = this->branches_info_.find(branch_name2);
-    if ( branch_info_it == this->branches_info_.end()) {
+    if ( branch_info_it == this->branches_info_.end() ) {
         if (msg != 0) *msg = "Base Branch " + branch_name2 + " does not exist";
         return Tuple::Iterator::GetEmptyIterator();
     }
@@ -147,26 +184,35 @@ Tuple::Iterator* UstoreHeapStorage::Join(const std::string& branch_name1, const 
     // Resize to be the same length
     size_t b1_size = Branch_commit.tuple_presence.size();
     size_t b2_size = branch2_commit.tuple_presence.size();
-    if ( b1_size > b2_size) {
+    if ( b1_size > b2_size ) {
         branch2_commit.tuple_presence.resize(b1_size, 0);
-    }else{
+    } else {
         Branch_commit.tuple_presence.resize(b2_size, 0);
     }
-// Retrieve the bitmap for the last commit of two branches and perform bitwise AND
-    dynamic_bitset<> tuple_presence = Branch_commit.tuple_presence & branch2_commit.tuple_presence;
+// Retrieve the bitmap for the last commit of two branches
+// and perform bitwise AND
+    dynamic_bitset<> tuple_presence =
+        Branch_commit.tuple_presence & branch2_commit.tuple_presence;
 // Retrieve the tuple record for Branch
     map<unsigned, RecordID> Branch_tuple_pos = Branch_commit.tuple_positions;
-    vector<RecordID> record_ids = this->GetTupleRecords(tuple_presence, Branch_tuple_pos);
-    return new PageIterator(this->relation_name_, this->client_, this->read_page_, record_ids,predicate);
+    vector<RecordID> record_ids =
+        this->GetTupleRecords(tuple_presence, Branch_tuple_pos);
+
+    return new PageIterator(this->relation_name_, this->client_,
+                            this->read_page_, record_ids, predicate);
 }
 
-vector<RecordID> UstoreHeapStorage::GetTupleRecords(const dynamic_bitset<>& tuple_presence, std::map<unsigned, RecordID> tuple_positions) const{
+vector<RecordID> UstoreHeapStorage::GetTupleRecords(
+      const dynamic_bitset<>& tuple_presence,
+      std::map<unsigned,
+      RecordID> tuple_positions) const {
     dynamic_bitset<>::size_type set_index = tuple_presence.find_first();
     vector<RecordID>  records;
     while (set_index != dynamic_bitset<>::npos) {
         auto recordID_it = tuple_positions.find(set_index);
-        if ( recordID_it == tuple_positions.end()) {
-            LOG(LOG_FATAL, " Set bit %d is not found in tuple_positions.", set_index);
+        if ( recordID_it == tuple_positions.end() ) {
+            LOG(LOG_FATAL,
+                " Set bit %d is not found in tuple_positions.", set_index);
         }
         records.push_back(recordID_it->second);
         set_index = tuple_presence.find_next(set_index);
@@ -174,40 +220,50 @@ vector<RecordID> UstoreHeapStorage::GetTupleRecords(const dynamic_bitset<>& tupl
     return records;
 }
 
-int UstoreHeapStorage::pk2index(const Field* f) const{
+int UstoreHeapStorage::pk2index(const Field* f) const {
     auto pk_it = pk2pos_.find(f);
     if ( pk_it == pk2pos_.end()) return -1;
     return (*pk_it).second;
-    //  auto pk_it = find_if ( pks_.begin(), pks_.end(), [f](const Field* pk_ptr) {
+    //  auto pk_it = find_if
+    //               ( pks_.begin(), pks_.end(), [f](const Field* pk_ptr) {
     //                          return pk_ptr->equal(f);
     //                  });
     //  if ( pk_it == pks_.end()) return -1;
     //  return distance(pks_.begin(), pk_it);
 }
 
-Tuple* UstoreHeapStorage::GetTuple(const string &branch_name, const Field* pk, Page* page, string *msg) {
+Tuple* UstoreHeapStorage::GetTuple(
+        const string &branch_name,
+        const Field* pk,
+        Page* page, string *msg) {
     auto branch_info_it = this->branches_info_.find(branch_name);
-    if ( branch_info_it == this->branches_info_.end()) {
+    if ( branch_info_it == this->branches_info_.end() ) {
         if (msg != 0) *msg = "Branch " + branch_name + " does not exist";
         return 0;
     }
     int bit_pos = this->pk2index(pk);
-    if ( bit_pos == -1) {
-        if (msg != 0) *msg = "Tuple with " + pk->to_str() + " has not been inserted in any of a branch. ";
+    if ( bit_pos == -1 ) {
+        if (msg != 0) {
+            *msg = "Tuple with " + pk->to_str() +
+                   " has not been inserted in any of a branch. ";
+        }
         return 0;
     }
     CommitID branch_commit_id = branch_info_it->second.commit_ids.back();
     CommitRecord branch_last_commit = this->commit_info_[branch_commit_id];
     dynamic_bitset<> tuple_presence = branch_last_commit.tuple_presence;
-    if (  bit_pos >= tuple_presence.size() || !tuple_presence.test(bit_pos)) {
-        if (msg != 0) *msg = "Tuple with " + pk->to_str() + " does not exist in branch " + branch_name;
+    if ( bit_pos >= tuple_presence.size() || !tuple_presence.test(bit_pos) ) {
+        if (msg != 0) {
+            *msg = "Tuple with " + pk->to_str() +
+                   " does not exist in branch " + branch_name;
+        }
         return 0;
     }
     RecordID tuple_pos = branch_last_commit.tuple_positions[bit_pos];
     // Retrieve page and construct tuple from ustore
     version_t version = tuple_pos.version;
-    //  cout << "Version: " << tuple_pos.version << endl;
-    //  cout << "Page Index: " << tuple_pos.tuple_index << endl;
+    //  cout << "Version : " << tuple_pos.version << endl;
+    //  cout << "Page Index : " << tuple_pos.tuple_index << endl;
     //  cout << endl;
     value_t* page_value = this->client_->SyncGet(this->relation_name_, version);
     unsigned page_size = page_value->length();
@@ -221,18 +277,20 @@ Tuple* UstoreHeapStorage::GetTuple(const string &branch_name, const Field* pk, P
 bool UstoreHeapStorage::InsertTuple(const Tuple* tuple, std::string* msg) {
     Field *pk = tuple->GetPK();
     int bit_pos = this->pk2index(pk);
-    if ( bit_pos == -1) {
+    if ( bit_pos == -1 ) {
         // This tuple has not been inserted in any of a branch.
-        bit_pos = this->pks_.size();// bit_pos for this newly inserted tuples
+        bit_pos = this->pks_.size();  // bit_pos for this newly inserted tuples
         this->pks_.push_back(pk);
         this->pk2pos_[pk] = bit_pos;
     }
     CommitID branch_commit_id = GetCurrentBranchInfo().commit_ids.back();
     CommitRecord branch_last_commit = this->commit_info_[branch_commit_id];
     dynamic_bitset<> tuple_presence = branch_last_commit.tuple_presence;
-    //  cout << "Presence: " << tuple_presence << endl;
-    if ( IsActiveTuple(bit_pos)) {
-        if (msg != 0) *msg = "Tuple with " + pk->to_str() + " has already exists in branch " + current_branch_name_;
+    //  cout << "Presence : " << tuple_presence << endl;
+    if ( IsActiveTuple(bit_pos) ) {
+        if (msg != 0) *msg = "Tuple with " + pk->to_str() +
+                             " has already exists in branch " +
+                              current_branch_name_;
         return false;
     }
     int page_index = this->commited_buffer_->InsertTuple(tuple, msg);
@@ -249,13 +307,20 @@ bool UstoreHeapStorage::InsertTuple(const Tuple* tuple, std::string* msg) {
 bool UstoreHeapStorage::UpdateTuple(const Tuple* tuple, std::string* msg) {
     Field *pk = tuple->GetPK();
     int bit_pos = this->pk2index(pk);
-    if ( bit_pos == -1) {
+    if ( bit_pos == -1 ) {
         // This tuple has not been inserted in any of a branch.
-        if (msg != 0) *msg = "Tuple with " + pk->to_str() + " has not been inserted in any of a branch. ";
+        if (msg != 0) {
+            *msg = "Tuple with " + pk->to_str() +
+                   " has not been inserted in any of a branch. ";
+        }
         return false;
     }
-    if ( !IsActiveTuple(bit_pos)) {
-        if (msg != 0) *msg = "Tuple with " + pk->to_str() + " has not been inserted in branch " + current_branch_name_ ;
+    if ( !IsActiveTuple(bit_pos) ) {
+        if (msg != 0) {
+            *msg = "Tuple with " + pk->to_str() +
+                   " has not been inserted in branch " +
+                   current_branch_name_;
+        }
         return false;
     }
     int page_index = this->commited_buffer_->InsertTuple(tuple, msg);
@@ -269,29 +334,41 @@ bool UstoreHeapStorage::UpdateTuple(const Tuple* tuple, std::string* msg) {
     return true;
 }
 
-bool UstoreHeapStorage::IsActiveTuple(unsigned bit_pos) const{
+bool UstoreHeapStorage::IsActiveTuple(unsigned bit_pos) const {
     bool exist_pre_commit = ExistInPreCommit(bit_pos);
-    bool removed_in_commit = (this->removed_tuple_pos_.find(bit_pos) != this->removed_tuple_pos_.end());
-    bool modified_in_commit = (this->modified_tuple_info_.find(bit_pos) != this->modified_tuple_info_.end());
+    bool removed_in_commit = (this->removed_tuple_pos_.find(bit_pos)
+                                != this->removed_tuple_pos_.end());
+    bool modified_in_commit = (this->modified_tuple_info_.find(bit_pos)
+                                != this->modified_tuple_info_.end());
+
     return !removed_in_commit && (modified_in_commit || exist_pre_commit);
 }
 
 bool UstoreHeapStorage::ExistInPreCommit(unsigned bit_pos) const {
     CommitID branch_commit_id = GetCurrentBranchInfo().commit_ids.back();
-    CommitRecord branch_last_commit = this->commit_info_.find(branch_commit_id)->second;
+    CommitRecord branch_last_commit =
+         this->commit_info_.find(branch_commit_id)->second;
+
     dynamic_bitset<> tuple_presence = branch_last_commit.tuple_presence;
     return  bit_pos < tuple_presence.size() && tuple_presence.test(bit_pos);
 }
 
 bool UstoreHeapStorage::RemoveTuple(const Field* pk, std::string* msg) {
     int bit_pos = this->pk2index(pk);
-    if ( bit_pos == -1) {
+    if ( bit_pos == -1 ) {
         // This tuple has not been inserted in any of a branch.
-        if (msg != 0) *msg = "Tuple with " + pk->to_str() + " has not been inserted in any of a branch. ";
+        if (msg != 0) {
+            *msg = "Tuple with " + pk->to_str() +
+                   " has not been inserted in any of a branch. ";
+        }
         return false;
     }
-    if ( !IsActiveTuple(bit_pos)) {
-        if (msg != 0) *msg = "Tuple with " + pk->to_str() + " has not been inserted in branch " + current_branch_name_ ;
+    if ( !IsActiveTuple(bit_pos) ) {
+        if (msg != 0) {
+            *msg = "Tuple with " + pk->to_str() +
+                   " has not been inserted in branch " +
+                    current_branch_name_;
+        }
         return false;
     }
     this->modified_tuple_info_.erase(bit_pos);
@@ -300,14 +377,17 @@ bool UstoreHeapStorage::RemoveTuple(const Field* pk, std::string* msg) {
     return true;
 }
 
-bool UstoreHeapStorage::Merge(CommitID* commit_id, const std::string& branch_name1, const std::string& branch_name2, std::string* msg) {
-    if ( commit_id == 0) {
+bool UstoreHeapStorage::Merge(CommitID* commit_id,
+                              const std::string& branch_name1,
+                              const std::string& branch_name2,
+                              std::string* msg) {
+    if ( commit_id == 0 ) {
         if (msg != 0) *msg = "Can not pass in an empty commit_id pointer";
         return false;
     }
 // Check for branch existence.
     auto branch_info_it = this->branches_info_.find(branch_name1);
-    if ( branch_info_it == this->branches_info_.end()) {
+    if ( branch_info_it == this->branches_info_.end() ) {
         if (msg != 0) *msg = "Branch " + branch_name1 + " does not exist";
         return false;
     }
@@ -315,7 +395,7 @@ bool UstoreHeapStorage::Merge(CommitID* commit_id, const std::string& branch_nam
     CommitRecord Branch_commit = this->commit_info_[Branch_last_commitID];
     map<unsigned, RecordID> Branch_tuple_pos = Branch_commit.tuple_positions;
     branch_info_it = this->branches_info_.find(branch_name2);
-    if ( branch_info_it == this->branches_info_.end()) {
+    if ( branch_info_it == this->branches_info_.end() ) {
         if (msg != 0) *msg = "Branch " + branch_name2 + " does not exist";
         return false;
     }
@@ -325,34 +405,41 @@ bool UstoreHeapStorage::Merge(CommitID* commit_id, const std::string& branch_nam
     // Resize to be the same length
     size_t b1_size = Branch_commit.tuple_presence.size();
     size_t b2_size = branch2_commit.tuple_presence.size();
-    if ( b1_size > b2_size) {
+    if ( b1_size > b2_size ) {
         branch2_commit.tuple_presence.resize(b1_size, 0);
-    }else{
+    } else {
         Branch_commit.tuple_presence.resize(b2_size, 0);
     }
     // Perform the OR operation on bitmap
-    dynamic_bitset<> merged_tuple_presence = Branch_commit.tuple_presence | branch2_commit.tuple_presence;
+    dynamic_bitset<> merged_tuple_presence =
+             Branch_commit.tuple_presence | branch2_commit.tuple_presence;
     map<unsigned, RecordID> merged_tuple_pos;
     dynamic_bitset<>::size_type set_index = merged_tuple_presence.find_first();
     // Combine RecordID from commits of both branches.
     // Commit from Branch takes the precedence.
     while (set_index != dynamic_bitset<>::npos) {
         auto recordID_it = Branch_tuple_pos.find(set_index);
-        if ( recordID_it != Branch_tuple_pos.end()) {
+        if ( recordID_it != Branch_tuple_pos.end() ) {
             merged_tuple_pos[set_index] = recordID_it->second;
-        }else{
+        } else {
             recordID_it = branch2_tuple_pos.find(set_index);
-            if ( recordID_it != branch2_tuple_pos.end()) {
+            if ( recordID_it != branch2_tuple_pos.end() ) {
                 merged_tuple_pos[set_index] = recordID_it->second;
-            }else{
-                LOG(LOG_FATAL, "Tuple with global bit %d is not found in either branch %s or %s. ", set_index, branch_name1.c_str(), branch_name2.c_str());
+            } else {
+                LOG(LOG_FATAL,
+            "Tuple with global bit %d is not found in either branch %s or %s. ",
+                    set_index, branch_name1.c_str(), branch_name2.c_str());
             }
         }
         set_index = merged_tuple_presence.find_next(set_index);
     }
     version_t Branch_version = Branch_commit.ustore_version;
     version_t branch2_version = branch2_commit.ustore_version;
-    version_t merge_version = this->client_->SyncMerge(this->relation_name_, Branch_version, branch2_version, NULL_VALUE);
+    version_t merge_version =
+        this->client_->SyncMerge(this->relation_name_,
+                                 Branch_version,
+                                 branch2_version,
+                                 NULL_VALUE);
     CommitRecord merge_commit;
     merge_commit.id = merge_version;
     merge_commit.ustore_version = merge_version;
@@ -364,27 +451,37 @@ bool UstoreHeapStorage::Merge(CommitID* commit_id, const std::string& branch_nam
     return true;
 }
 
-bool UstoreHeapStorage::IsEmptyWorkSpace() const{
-    return this->modified_tuple_info_.size() == 0 && this->removed_tuple_pos_.size() == 0;
+bool UstoreHeapStorage::IsEmptyWorkSpace() const {
+    return this->modified_tuple_info_.size() == 0
+                && this->removed_tuple_pos_.size() == 0;
 }
 
 bool UstoreHeapStorage::Commit(CommitID* commit_id, std::string* msg) {
-    if ( commit_id == 0) {
+    if ( commit_id == 0 ) {
         if (msg != 0) *msg = "Can not pass in an empty commit_id pointer";
         return false;
     }
-    if ( IsEmptyWorkSpace()) {
-        if ( msg != 0) *msg = "There exists no tuple operations. Can not commit!.";
+    if ( IsEmptyWorkSpace() ) {
+        if ( msg != 0 ) {
+             *msg = "There exists no tuple operations. Can not commit!.";
+        }
         return false;
     }
     CommitID last_commit_id = GetCurrentBranchInfo().commit_ids.back();
 // SyncPut the page to ustore
-    value_t ustore_value = value_t(reinterpret_cast<const char*>(commited_buffer_->GetRawData()), commited_buffer_->GetPageSize());
+    value_t ustore_value = value_t(
+                            reinterpret_cast<const char*>(
+                                commited_buffer_->GetRawData()),
+                            commited_buffer_->GetPageSize());
     CommitRecord last_commit = this->commit_info_[last_commit_id];
-    version_t ustore_version = this->client_->SyncPut(this->relation_name_, last_commit.ustore_version, ustore_value);
+    version_t ustore_version = this->client_->SyncPut(
+                                                this->relation_name_,
+                                                last_commit.ustore_version,
+                                                ustore_value);
+
     dynamic_bitset<> new_tuple_presence = last_commit.tuple_presence;
     map<unsigned, RecordID> new_tuple_pos = last_commit.tuple_positions;
-    for(const auto& tuple_info: modified_tuple_info_) {
+    for (const auto& tuple_info : modified_tuple_info_) {
         unsigned tuple_bit_pos = tuple_info.first;
         unsigned tuple_page_index = tuple_info.second;
         // Set the tuple's position
@@ -393,13 +490,13 @@ bool UstoreHeapStorage::Commit(CommitID* commit_id, std::string* msg) {
         tuple_record.tuple_index = tuple_page_index;
         new_tuple_pos[tuple_bit_pos] = tuple_record;
         // Set the bitmap
-        if ( new_tuple_presence.size() <= tuple_bit_pos) {
+        if ( new_tuple_presence.size() <= tuple_bit_pos ) {
             new_tuple_presence.resize(tuple_bit_pos + 1, 0);
         }
         new_tuple_presence[tuple_bit_pos] = true;
-    }// end of for
+    }  // end of for
 // unset the bit for deleted tuples
-    for(const auto& tuple_bit_pos: removed_tuple_pos_) {
+    for (const auto& tuple_bit_pos : removed_tuple_pos_) {
         new_tuple_presence[tuple_bit_pos] = false;
     }
 // Reset relevant vars
@@ -419,29 +516,45 @@ bool UstoreHeapStorage::Commit(CommitID* commit_id, std::string* msg) {
     return true;
 }
 
-bool UstoreHeapStorage::Checkout(const CommitID& commit_id, const std::string& base_branch_name, const std::string& new_branch_name, std::string* msg) {
+bool UstoreHeapStorage::Checkout(const CommitID& commit_id,
+                                 const std::string& base_branch_name,
+                                 const std::string& new_branch_name,
+                                 std::string* msg) {
 // check for any uncommited tuples
-    if ( !IsEmptyWorkSpace()) {
-        if ( msg != 0) *msg = "There exists uncommited tuple operation. Can not check out!.";
+    if ( !IsEmptyWorkSpace() ) {
+        if ( msg != 0 ) {
+            *msg = "There exists uncommited tuple operation. ";
+            *msg = "Can not check out!.";
+        }
         return false;
     }
 // Check base branch exists
     auto branch_info_it = this->branches_info_.find(base_branch_name);
-    if ( branch_info_it == this->branches_info_.end()) {
-        if (msg != 0) *msg = "Base Branch " + base_branch_name + " does not exist";
+    if ( branch_info_it == this->branches_info_.end() ) {
+        if ( msg != 0 ) {
+            *msg = "Base Branch " + base_branch_name + " does not exist";
+        }
         return false;
     }
 // Check new branch does not exist
     branch_info_it = this->branches_info_.find(new_branch_name);
-    if ( branch_info_it != this->branches_info_.end()) {
-        if (msg != 0) *msg = "New Branch " + base_branch_name + " already exists";
+    if ( branch_info_it != this->branches_info_.end() ) {
+        if (msg != 0) {
+            *msg = "New Branch " + base_branch_name + " already exists";
+        }
         return false;
     }
 // check commit exists in base branch.
     vector<CommitID> branch_commit_ids = GetCurrentBranchInfo().commit_ids;
-    auto commit_it = find(branch_commit_ids.begin(), branch_commit_ids.end(), commit_id);
-    if ( commit_it == branch_commit_ids.end()) {
-        if ( msg != 0) *msg = "Commit with id " + to_string(commit_id) + " is not found in Branch " + base_branch_name;
+    auto commit_it = find(branch_commit_ids.begin(),
+                          branch_commit_ids.end(),
+                          commit_id);
+
+    if ( commit_it == branch_commit_ids.end() ) {
+        if ( msg != 0 ) {
+            *msg = "Commit with id " + to_string(commit_id) +
+                   " is not found in Branch " + base_branch_name;
+        }
         return false;
     }
 // Create the new branch
@@ -450,20 +563,24 @@ bool UstoreHeapStorage::Checkout(const CommitID& commit_id, const std::string& b
     new_branch.base_branch = base_branch_name;
     new_branch.new_commit(commit_id);
     this->branches_info_[new_branch_name] = new_branch;
-    Switch(new_branch.branch_name,msg);
+    Switch(new_branch.branch_name, msg);
     *msg = "Create a new branch " + new_branch_name + " and switch to that";
     return true;
 }
 
 bool UstoreHeapStorage::Switch(const string& branch_name, std::string *msg) {
-    if ( !IsEmptyWorkSpace()) {
-        if ( msg != 0) *msg = "There exists uncommited tuple operation. Can not switch.";
+    if ( !IsEmptyWorkSpace() ) {
+        if ( msg != 0 ) {
+            *msg = "There exists uncommited tuple operation. Can not switch.";
+        }
         return false;
     }
 // Check base branch exists
     auto branch_info_it = this->branches_info_.find(branch_name);
-    if ( branch_info_it == this->branches_info_.end()) {
-        if (msg != 0) *msg = "Switched Branch " + branch_name + " does not exist";
+    if ( branch_info_it == this->branches_info_.end() ) {
+        if ( msg != 0 ) {
+            *msg = "Switched Branch " + branch_name + " does not exist";
+        }
         return false;
     }
     this->current_branch_name_ = branch_name;
@@ -471,8 +588,5 @@ bool UstoreHeapStorage::Switch(const string& branch_name, std::string *msg) {
     return true;
 }
 
-//  Tuple::Iterator* UstoreHeapStorage::ConstructTupleIterator(const std::vector<RecordID>& tuples_pos_,const Predicate* predicate) {
-//      return Tuple::Iterator::GetEmptyIterator();
-//  }
 }  //  namespace relation
 }  //  namespace ustore
