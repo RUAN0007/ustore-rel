@@ -5,14 +5,18 @@
  *      Author: Ruan Pingcheng
  */
 
-#include "field.h"
+#include "./field.h"
 
-#include "debug.h"
-#include "type.h"
+#include <string>
 
-using namespace std;
-namespace ustore{
-namespace relation{
+#include "./debug.h"
+#include "./type.h"
+
+
+using std::string;
+
+namespace ustore {
+namespace relation {
 
 
 bool IntField::IsSatisified(ComparisonOp op, const Field* field) const {
@@ -89,12 +93,14 @@ std::ostream& operator<<(std::ostream &out, StrField str_field) {
     return out;
 }
 
-std::istream& operator>>(std::istream &in, IntField& int_field){
+std::istream& operator>>(std::istream &in, IntField& int_field) {
     size_t len = IntType::GetInstance()->GetLen();
     char* bytes = new char[len];
-    in.read(bytes,len);
+    in.read(bytes, len);
 
-    Field* parsed_field = IntType::GetInstance()->Parse(reinterpret_cast<unsigned char*>(bytes));
+    Field* parsed_field = IntType::GetInstance()
+                            ->Parse(reinterpret_cast<unsigned char*>(bytes));
+
     IntField* parsed_int_field = dynamic_cast<IntField*>(parsed_field);
     int_field.value_ = parsed_int_field->value();
 
@@ -111,7 +117,7 @@ std::ostream& operator<<(std::ostream &out, IntField int_field) {
 
     delete[] bytes;
     return out;
-};
-
 }
-}//namespace ustore
+
+}  // namespace relation
+}  // namespace ustore
