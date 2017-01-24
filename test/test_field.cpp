@@ -6,13 +6,27 @@
  */
 #include <gtest/gtest.h>
 
-#include "field.h"
 
 #include <map>
 #include <sstream>
 
-using namespace std;
-using namespace ustore::relation;
+#include "./field.h"
+
+using std::stringstream;
+using std::map;
+using std::string;
+
+using ustore::relation::Type;
+using ustore::relation::IntType;
+using ustore::relation::StrType;
+
+using ustore::relation::IntField;
+using ustore::relation::StrField;
+using ustore::relation::Field;
+using ustore::relation::FieldLess;
+
+using ustore::relation::ComparisonOp;
+
 TEST(STREAM, Zero_Int_Field) {
     IntField origin_zero(0);
     stringstream ss;
@@ -88,7 +102,7 @@ TEST(STREAM, Normal_Str_Field) {
 
 string GetStrByLen(size_t len) {
     stringstream s;
-    for (size_t i = 0;i < len;i++) {
+    for (size_t i = 0; i < len; i++) {
         s << "a";
     }
     return s.str();;
@@ -104,7 +118,8 @@ TEST(STREAM, Nearflow_Str_Field) {
     ss.flush();
     StrField new_field("NOT EMPTY");
     ss >> new_field;
-    EXPECT_EQ(new_field.value(), value.substr(0,256));    }
+    EXPECT_EQ(new_field.value(), value.substr(0, 256));
+}
 
 TEST(STREAM, overflow_Str_Field) {
     string value = GetStrByLen(257);
@@ -116,7 +131,8 @@ TEST(STREAM, overflow_Str_Field) {
     ss.flush();
     StrField new_field("NOT EMPTY");
     ss >> new_field;
-    EXPECT_EQ(new_field.value(), value.substr(0,256));    }
+    EXPECT_EQ(new_field.value(), value.substr(0, 256));
+}
 
 TEST(FIELD, EQUAL) {
     Field *f1 = new IntField(1);

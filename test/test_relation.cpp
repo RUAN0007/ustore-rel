@@ -2,7 +2,7 @@
 
    @Author: RUAN0007
    @Date:   2017-01-11 09:22:13
-   @Last_Modified_At:   2017-01-23 18:33:20
+   @Last_Modified_At:   2017-01-24 09:20:38
    @Last_Modified_By:   RUAN0007
 
 */
@@ -282,7 +282,6 @@ TEST_F(RelationTest, OperationAfterInsert) {
 }
 
 TEST_F(RelationTest, OperationAfterUpdate) {
-
     Tuple t1(tuple_store, 0, schema);
 
     Field* int_f1 = new IntField(1);
@@ -555,7 +554,6 @@ t1 -> t21 -> t3 (branch1)
 }
 
 TEST_F(RelationTest, ScanDiffJoin) {
-
     std::cout << "Relation Name: " << relation_name << std::endl;
     string msg;
     CommitID commit_id;
