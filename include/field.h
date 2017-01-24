@@ -143,7 +143,7 @@ friend std::istream& operator>>(std::istream &in, StrField& str_field);
 friend std::ostream& operator<<(std::ostream &out, StrField str_field);
 
  private:
-std::string value_;
+    std::string value_;
 };  //  end of StrField
 }  //  namespace relation
 }  //  namespace ustore

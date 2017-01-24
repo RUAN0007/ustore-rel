@@ -47,7 +47,7 @@ const unsigned char* Serialize(const Field* f) const override;
 const std::string to_str() const override { return "INT_TYPE";}
 
 static const IntType* GetInstance() {
-    const static IntType instance;
+    static const IntType instance;
     return &instance;
 }
 
@@ -70,7 +70,7 @@ const unsigned char* Serialize(const Field* f) const override;
 const std::string to_str() const override { return "STR_TYPE";}
 
 static const StrType* GetInstance() {
-    const static StrType instance;
+     static const StrType instance;
      return &instance;
 }
 

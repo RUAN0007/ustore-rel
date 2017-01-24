@@ -1,8 +1,8 @@
-/* 
+/*
 
    @Author: RUAN0007
    @Date:   2017-01-09 19:25:14
-   @Last_Modified_At:   2017-01-23 17:25:14
+   @Last_Modified_At:   2017-01-24 14:22:29
    @Last_Modified_By:   RUAN0007
 
 */
@@ -14,6 +14,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <string>
 
 #include <boost/dynamic_bitset.hpp>
 
@@ -37,17 +38,17 @@ UstoreHeapStorage(const std::string& relation_name, const TupleDscp& schema,
 ~UstoreHeapStorage();
 
 /*
-    Get tuple by primary key in a branch. 
+    Get tuple by primary key in a branch.
     Shall be deleted after use.
 
     Args:
         branch_name: the name of branch where the tuple is retrieved.
         pk: the primary key of this tuple
         page: a pointer to a page to hold the tuple
-        msg: a string reference that hold any returned message. 
-    
+        msg: a string reference that hold any returned message.
+
     Return:
-        the tuple with data as back store. Empty pointer if such tuple not exists. 
+        the tuple with data as back store. Empty pointer if such tuple not exists.
 */
 Tuple* GetTuple(const std::string& branch_name,
                 const Field* pk, Page* page, std::string* msg);
@@ -56,9 +57,9 @@ Tuple* GetTuple(const std::string& branch_name,
     Insert Tuple into current branch for later commit
 
     Args:
-        tuple: the pointer to tuple to be inserted. 
-        msg: a string reference that hold any returned message. 
-    
+        tuple: the pointer to tuple to be inserted.
+        msg: a string reference that hold any returned message.
+
     Return:
         whether the operation successful or not
 */
@@ -68,9 +69,9 @@ Tuple* GetTuple(const std::string& branch_name,
     Update Tuple into current branch for later commit
 
     Args:
-        tuple: the pointer to tuple to be updated. 
-        msg: a string reference that hold any returned message. 
-    
+        tuple: the pointer to tuple to be updated.
+        msg: a string reference that hold any returned message.
+
     Return:
         whether the operation successful or not
 */
@@ -79,9 +80,9 @@ Tuple* GetTuple(const std::string& branch_name,
     Remove Tuple for primary key into current branch for later commit
 
     Args:
-        tuple: the pointer to tuple to be updated. 
-        msg: a string reference that hold any returned message. 
-    
+        tuple: the pointer to tuple to be updated.
+        msg: a string reference that hold any returned message.
+
     Return:
         whether the operation successful or not
 */
@@ -92,22 +93,22 @@ Tuple* GetTuple(const std::string& branch_name,
 
     Args:
         commit_id: the pointer to hold commitID for this commit
-        msg: a string reference that hold any returned message. 
-    
+        msg: a string reference that hold any returned message.
+
     Return:
         whether the commit operation successful or not
 */
     bool Commit(CommitID* commit_id, std::string* msg);
 
 /*
-    Merge Branch and branch2 and make a commit. This commit shall fall into Branch. 
-    If tuples active in both Branch and branch2, Branch's version takes the precedence.  
+    Merge Branch and branch2 and make a commit. This commit shall fall into Branch.
+    If tuples active in both Branch and branch2, Branch's version takes the precedence.
 
     Args:
         commit_ids: the pointer to hold commitID for this commit
         branch_name1: the name of Branch
-        branch_name2: the name of branch2    
-        msg: a string reference that hold any returned message. 
+        branch_name2: the name of branch2
+        msg: a string reference that hold any returned message.
 
     Return:
         whether the commit operation successful or not
@@ -119,7 +120,7 @@ Tuple* GetTuple(const std::string& branch_name,
     Create a new branch rooted on the commit of another branch
 
     Args:
-        commit_id: the ID of the commit from base branch 
+        commit_id: the ID of the commit from base branch
         base_branch_bame: the name of base branch
         new_branch_name: the name of created branch
         msg: a pointer of a string to hold any returned message
@@ -165,7 +166,7 @@ Tuple* GetTuple(const std::string& branch_name,
         msg: a pointer of a string to hold any returned message
 
     Return:
-        the tuple iterator to hold valid tuples. Valid tuple are stored in Read Buffer. 
+        the tuple iterator to hold valid tuples. Valid tuple are stored in Read Buffer.
 */
     Tuple::Iterator* Scan(const std::string& branch_name, std::string* msg);
 
@@ -178,7 +179,7 @@ Tuple* GetTuple(const std::string& branch_name,
         msg: a pointer of a string to hold any returned message
 
     Return:
-        the tuple iterator to hold valid tuples. Valid tuples are stored in Read Buffer. 
+        the tuple iterator to hold valid tuples. Valid tuples are stored in Read Buffer.
 
 */
     Tuple::Iterator* Diff(const std::string& branch_name1,
@@ -186,7 +187,7 @@ Tuple* GetTuple(const std::string& branch_name,
                           std::string* msg);
 
 /*
-    Scan all the active tuples in both Branch and branch2 while in Branch satisfying the predicate . 
+    Scan all the active tuples in both Branch and branch2 while in Branch satisfying the predicate .
 
     Args:
         branch_name1: the name of Branch
@@ -195,7 +196,7 @@ Tuple* GetTuple(const std::string& branch_name,
         msg: a pointer of a string to hold any returned message
 
     Return:
-        the tuple iterator to hold valid tuples. Valid tuples are stored in Read Buffer. 
+        the tuple iterator to hold valid tuples. Valid tuples are stored in Read Buffer.
 
 */
     Tuple::Iterator* Join(const std::string& branch_name1,
@@ -248,12 +249,12 @@ Args:
         value: RecordID to identify this tuple's position in ustore
 
 Return:
-    a vector of RecordID. 
-    An empty vector will return if any error occurs, e,g branch name not found. 
+    a vector of RecordID.
+    An empty vector will return if any error occurs, e,g branch name not found.
 
 */
 
-std::vector<RecordID> GetTupleRecords(
+    std::vector<RecordID> GetTupleRecords(
                            const boost::dynamic_bitset<>& tuple_presence,
                            std::map<unsigned, RecordID> tuple_positions) const;
 
@@ -262,7 +263,7 @@ Construct the tuple iterator based on tuple's position and predicate. The valid 
 
 Args:
     tuple_pos_; a vector of RecordID to identify the candidate tuple's position
-    predicate: the predicate to filter for valid tuples. An empty pointer indicates no predicate conditio applies. 
+    predicate: the predicate to filter for valid tuples. An empty pointer indicates no predicate conditio applies.
 
 Returns:
     A tuple iterator
@@ -293,7 +294,7 @@ Args:
     the bit position for that tuple
 
 Return:
-    whether the tuple is active now. 
+    whether the tuple is active now.
 */
     bool IsActiveTuple(unsigned bit_pos) const;
 

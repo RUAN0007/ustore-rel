@@ -1,8 +1,8 @@
-/* 
+/*
 
    @Author: RUAN0007
    @Date:   2017-01-07 09:48:57
-   @Last_Modified_At:   2017-01-23 17:09:20
+   @Last_Modified_At:   2017-01-24 14:21:42
    @Last_Modified_By:   RUAN0007
 
 */
@@ -11,79 +11,86 @@
 #ifndef INCLUDE_PAGE_H_
 #define INCLUDE_PAGE_H_
 
+#include <string>
+
 #include "./tuple.h"
 
-namespace ustore{
-namespace relation{
+namespace ustore {
+namespace relation {
 
 /*
-Page contains a chunk of bytes that hold tuples. The first four bytes hold the number of tuples in this page. 
+Page contains a chunk of bytes that hold tuples. The first four bytes hold the number of tuples in this page.
 */
-class Page
-{
+class Page {
+ public:
+    Page(std::string table_name_,
+         const TupleDscp* tuple_schema,
+         size_t page_size);
 
-public:
-	Page(std::string table_name_, const TupleDscp* tuple_schema, size_t page_size);
+    Page(std::string table_name_,
+         const TupleDscp* tuple_schema,
+         unsigned char* buffer,
+         size_t page_size);
 
-	Page(std::string table_name_, const TupleDscp* tuple_schema, unsigned char* buffer, size_t page_size);
-	
-	~Page();
+    ~Page();
 
-	inline std::string GetTableName() const{ return table_name_;}
+    inline std::string GetTableName() const { return table_name_;}
 
-	inline const TupleDscp* GetTupleSchema() const{return tuple_schema_;}
+    inline const TupleDscp* GetTupleSchema() const {return tuple_schema_;}
 
 
-	inline size_t GetPageSize() const {return page_size_;}
+    inline size_t GetPageSize() const {return page_size_;}
 
-	inline unsigned GetTupleNumber() const{ return tuple_num_;}
+    inline unsigned GetTupleNumber() const { return tuple_num_;}
 
-	inline const unsigned char* GetRawData() const {
-		return buffer_;
-	}
+    inline const unsigned char* GetRawData() const {
+        return buffer_;
+    }
 
-	void SetData(unsigned char* buffer, size_t page_size);
+    void SetData(unsigned char* buffer, size_t page_size);
 
-	inline void Reset(std::string relation_name, const TupleDscp* tuple_schema, size_t page_size){
-		this->table_name_ = relation_name;
-		this->tuple_schema_= tuple_schema;
-		Reset(page_size);
-	}
+    inline void Reset(std::string relation_name,
+                      const TupleDscp* tuple_schema,
+                      size_t page_size) {
+        this->table_name_ = relation_name;
+        this->tuple_schema_ = tuple_schema;
+        Reset(page_size);
+    }
 
-	inline void Reset(std::string relation_name, const TupleDscp* tuple_schema){
-		this->table_name_ = relation_name;
-		this->tuple_schema_= tuple_schema;
-		Reset();
-	}
+    inline void Reset(std::string relation_name,
+                      const TupleDscp* tuple_schema) {
+        this->table_name_ = relation_name;
+        this->tuple_schema_ = tuple_schema;
+        Reset();
+    }
 
-	//Reset the page data without changing the page size
-	//memcpy 0 to allocated bytes
-	void Reset();
+    // Reset the page data without changing the page size
+    // memcpy 0 to allocated bytes
+    void Reset();
 
-	//Reset the page data with changing the page size
-	//Reallocate and initialize the memory
-	void Reset(size_t page_size);
-	
-	//return 0 if index > tuple_num_
-	Tuple* GetTuple(unsigned index) const;
+    // Reset the page data with changing the page size
+    // Reallocate and initialize the memory
+    void Reset(size_t page_size);
 
-	//Insert the tuple inside this page
-	//Return the tuple position in this page
+    // return 0 if index > tuple_num_
+    Tuple* GetTuple(unsigned index) const;
 
-	//Return -1 if insertion fails. 
-	int InsertTuple(const Tuple* tuple, std::string* msg);
+    // Insert the tuple inside this page
+    // Return the tuple position in this page
 
-private:
-	std::string table_name_;
-	const TupleDscp* tuple_schema_; 
+    // Return -1 if insertion fails.
+    int InsertTuple(const Tuple* tuple, std::string* msg);
 
-	size_t page_size_;
-	unsigned tuple_num_;
+ private:
+    std::string table_name_;
+    const TupleDscp* tuple_schema_;
 
-	unsigned empty_slot_offset_;
-	unsigned char* buffer_;
-	
+    size_t page_size_;
+    unsigned tuple_num_;
+
+    unsigned empty_slot_offset_;
+    unsigned char* buffer_;
 };
-}  // namespace relation
-}  // namespace ustore
-#endif  //  INCLUDE_PAGE_H_
+}  //  namespace relation
+}  //  namespace ustore
+#endif  //   INCLUDE_PAGE_H_

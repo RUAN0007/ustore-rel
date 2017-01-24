@@ -19,28 +19,30 @@ namespace relation {
 
 class Predicate{
  public:
-Predicate(const std::string& field_name, ComparisonOp op, const Field& field):
-    field_name_(field_name),
-    op_(op),
-    field_(field.clone()) {
-}
+    Predicate(const std::string& field_name,
+              ComparisonOp op, const Field& field):
+        field_name_(field_name),
+        op_(op),
+        field_(field.clone()) {
+    }
 
-std::string GetFieldName() const {return field_name_;}
+    std::string GetFieldName() const {return field_name_;}
 
-ComparisonOp GetOp() const { return op_;}
+    ComparisonOp GetOp() const { return op_;}
 
-const Field* GetField() const { return field_;}
+    const Field* GetField() const { return field_;}
 
-// Return whether the tuple satsifies this predicate
-// Note: this function return false if this tuple does not contain field_name_
-// bool Filter(Tuple t) const;
+    // Return whether the tuple satsifies this predicate
+    // Note: this function return false
+    // if this tuple does not contain field_name_
+    // bool Filter(Tuple t) const;
 
-~Predicate() {delete field_;}
+    ~Predicate() {delete field_;}
 
  private:
-std::string field_name_;
-ComparisonOp op_;
-Field* field_;
+    std::string field_name_;
+    ComparisonOp op_;
+    Field* field_;
 };  // class Predicate
 
 }  // namespace relation
